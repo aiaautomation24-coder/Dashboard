@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="20" fill="#1a1a2e"/>
+  <text x="50" y="38" font-family="Arial,sans-serif" font-size="28" font-weight="900" fill="#4a9eff" text-anchor="middle">AIA</text>
+  <text x="50" y="62" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">JOB</text>
+  <text x="50" y="78" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">TRACK</text>
+</svg>

@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIA Job Track Dashboard</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AIA Track">
+<link rel="apple-touch-icon" href="favicon.svg">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--border:#e0ddd5;
+  --text:#1a1a18;--text2:#6b6b65;
+  --blue:#1a5fa8;--blue-bg:#e8f0fb;
+  --amber:#8a5200;--amber-bg:#fdf0d8;
+  --green:#2a6e2a;--green-bg:#e8f5e8;
+  --red:#a02020;--red-bg:#faeaea;
+  --purple:#5c3fa0;--purple-bg:#eeebfa;
+  --teal:#0d7377;--teal-bg:#e0f5f5;
+  --orange:#b5541a;--orange-bg:#fde9d9;
+  --accent:#1a5fa8;--radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+
+/* HEADER */
+.header{background:#1a1a2e;color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.header-left h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.header-left p{font-size:11px;color:#aaa;margin-top:2px}
+.header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hbtn{border:none;border-radius:var(--radius);padding:7px 13px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .15s}
+.hbtn-white{background:#fff;color:#1a1a2e}.hbtn-white:hover{background:#e8e8e8}
+.hbtn-green{background:#1a7a2a;color:#fff}.hbtn-green:hover{background:#155e22}
+.hbtn-amber{background:#c47a00;color:#fff}.hbtn-amber:hover{background:#a06000}
+.file-badge{font-size:10px;padding:3px 8px;border-radius:999px;font-weight:600}
+.fb-loaded{background:#e8f5e8;color:#2a6e2a}
+.fb-empty{background:#faeaea;color:#a02020}
+#file-status{font-size:11px;color:#7af;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* TABS */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto}
+.tab{padding:11px 16px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* UPLOAD AREA */
+.upload-zone{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:16px;transition:border .2s}
+.upload-zone:hover{border-color:var(--accent)}
+.upload-zone h3{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.upload-zone p{font-size:11px;color:var(--text2);margin-bottom:10px}
+.upload-zone.loaded{border-color:var(--green);background:var(--green-bg)}
+.upload-zone.loaded h3{color:var(--green)}
+
+/* MAIN */
+.main{padding:18px 20px;max-width:1400px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+
+/* CARDS */
+.cards-wrap{margin-bottom:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:11px 10px}
+.card .cl{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.card .cv{font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.card .cs{font-size:9px;color:var(--text2);margin-top:3px}
+.card.c-blue{background:var(--blue-bg)}.card.c-blue .cv{color:var(--blue)}
+.card.c-amber{background:var(--amber-bg)}.card.c-amber .cv{color:var(--amber)}
+.card.c-green{background:var(--green-bg)}.card.c-green .cv{color:var(--green)}
+.card.c-red{background:var(--red-bg)}.card.c-red .cv{color:var(--red)}
+.card.c-purple{background:var(--purple-bg)}.card.c-purple .cv{color:var(--purple)}
+.card.c-teal{background:var(--teal-bg)}.card.c-teal .cv{color:var(--teal)}
+
+/* SECTION */
+.sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden}
+.sec-head{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2)}
+.sec-head h2{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em}
+.sec-head span{font-size:11px;color:var(--text2)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--surface2);color:var(--text2);font-weight:700;padding:8px 11px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;white-space:nowrap}
+td{padding:7px 11px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+.total-row td{background:#d6e4f0!important;font-weight:700;border-top:2px solid var(--border);color:#0f3460}
+.sub-row td{color:var(--text2);font-size:11px}
+.sub-row td:first-child{padding-left:26px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+th.num{text-align:right}
+
+/* OVERVIEW GRID */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:700px){.ov-grid{grid-template-columns:1fr}}
+
+/* BADGE */
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;font-weight:700}
+.b-dd{background:var(--blue-bg);color:var(--blue)}
+.b-ns{background:var(--amber-bg);color:var(--amber)}
+.b-cancel{background:var(--red-bg);color:var(--red)}
+.b-floor{background:var(--purple-bg);color:var(--purple)}
+
+/* BAR */
+.bar-wrap{display:inline-block;height:7px;background:var(--border);border-radius:3px;vertical-align:middle;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+
+
+
+/* SEARCH */
+.search-box{padding:9px 14px;border-bottom:1px solid var(--border)}
+.search-box input{width:100%;max-width:280px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text);background:var(--surface);outline:none}
+.search-box input:focus{border-color:var(--accent)}
+
+/* DATE RANGE */
+.date-range-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px}
+.date-range-bar b{color:var(--accent)}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:900px){.chart-grid,.chart-grid-3{grid-template-columns:1fr}}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.chart-box h3{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.chart-box canvas{max-height:240px}
+
+
+.empty{text-align:center;padding:40px;color:var(--text2)}
+.empty svg{margin:0 auto 10px;display:block;opacity:.3}
+.empty p{font-size:13px}
+
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>AIA Job Track Dashboard</h1>
+    <p id="date-display">Upload files to load data</p>
+  </div>
+  <div class="header-right">
+    <span id="file-status"></span>
+    <!-- AIA Track Record Upload -->
+    <label class="hbtn hbtn-white" for="xlFile" title="Upload AIA Track Record (.xlsm/.xlsx)">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      AIA Track Record
+    </label>
+    <input type="file" id="xlFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadTrackRecord(this)">
+    <span id="aia-badge" class="file-badge fb-empty">Not loaded</span>
+
+    <!-- Printing Schedule Upload -->
+    <button class="hbtn hbtn-green" onclick="downloadExcel()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Download Report
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview',this)">Overview</div>
+  <div class="tab" onclick="showTab('floor',this)">Floor Jobs</div>
+  <div class="tab" onclick="showTab('missing',this)">Missing List</div>
+  <div class="tab" onclick="showTab('customers',this)">Customers</div>
+</div>
+
+<div class="main">
+
+<!-- OVERVIEW -->
+<div id="tab-overview" class="panel active">
+  <div class="date-range-bar" id="date-bar">
+    <span>Period: <b id="period-label">Jan 2026 – today</b></span>
+    <span>Last Updated: <b id="last-update">—</b></span>
+    <span>Total Records: <b id="total-records">—</b></span>
+  </div>
+  <div class="cards-wrap"><div class="cards">
+    <div class="card c-blue"><div class="cl">Total Jobs</div><div class="cv" id="ov-total">—</div><div class="cs" id="ov-range">Jan–today</div></div>
+    <div class="card c-green"><div class="cl">Dispatched (DD)</div><div class="cv" id="ov-dd">—</div><div class="cs" id="ov-dd-pct">—</div></div>
+    <div class="card c-amber"><div class="cl">Not Started</div><div class="cv" id="ov-ns">—</div><div class="cs" id="ov-ns-pct">—</div></div>
+    <div class="card c-red"><div class="cl">Cancelled</div><div class="cv" id="ov-cancel">—</div><div class="cs" id="ov-cancel-pct">—</div></div>
+    <div class="card c-purple"><div class="cl">PH In Floor</div><div class="cv" id="ov-ph">—</div><div class="cs">Floor process</div></div>
+    <div class="card c-teal"><div class="cl">Screen In Floor</div><div class="cv" id="ov-screen">—</div><div class="cs">Floor process</div></div>
+    <div class="card"><div class="cl">Pasting In Floor</div><div class="cv" id="ov-pasting">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#fdf5e0"><div class="cl">FOIL</div><div class="cv" id="ov-foil" style="color:#c47a2b">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#e8f5e8"><div class="cl">Front Bal</div><div class="cv" id="ov-frontbal" style="color:#2a6e2a">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#e8f0fb"><div class="cl">Lamination</div><div class="cv" id="ov-lam" style="color:#1a5fa8">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#faeaea"><div class="cl">VDP</div><div class="cv" id="ov-vdp" style="color:#a02020">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#f5f5f5"><div class="cl">VR</div><div class="cv" id="ov-vr" style="color:#555555">—</div><div class="cs">Floor process</div></div>
+    <div class="card"><div class="cl">Floor Jobs Total</div><div class="cv" id="ov-floor">—</div><div class="cs">In production</div></div>
+  </div></div>
+
+  <!-- OVERVIEW CHARTS -->
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>📅 Monthly Job Count — Jan 2026 to Today</h3>
+      <canvas id="chart-monthly"></canvas>
+    </div>
+  </div>
+
+  <div class="ov-grid">
+    <div class="sec">
+      <div class="sec-head"><h2>Monthly Job Count</h2><span id="ov-date-range">—</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Month</th><th class="num">Jobs</th><th class="num">DD</th><th class="num">Not Started</th><th class="num">Cancelled</th></tr></thead>
+        <tbody id="monthly-table"><tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">Upload AIA Track Record to load data</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="sec">
+      <div class="sec-head"><h2>Job Status Breakdown</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Status</th><th class="num">Count</th><th class="num">%</th><th>Bar</th></tr></thead>
+        <tbody id="status-table"><tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">—</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOOR JOBS -->
+<div id="tab-floor" class="panel">
+  <!-- Floor Charts -->
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>🏭 Floor Jobs by Process — Job Count</h3>
+      <canvas id="chart-floor"></canvas>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+    <!-- Left: Floor Jobs (lamba) -->
+    <div class="sec">
+      <div class="sec-head"><h2>Floor Jobs — Pending by Process & Month</h2><span id="floor-date">—</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Process / Month</th><th class="num">Pending Qty</th><th class="num">Tot. Cut SH</th><th class="num">Job Count</th><th>Status</th></tr></thead>
+        <tbody id="floor-table"><tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">Upload AIA Track Record to load data</td></tr></tbody>
+      </table></div>
+    </div>
+    <!-- Right: Fold table only -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="sec">
+        <div class="sec-head"><h2>Fold & Other Floor Processes</h2></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Process</th><th class="num">Pending Qty</th><th class="num">Tot. Cut SH</th><th class="num">Job Count</th></tr></thead>
+          <tbody id="fold-table"><tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">—</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MISSING LIST -->
+<div id="tab-missing" class="panel">
+  <div class="cards" style="margin-bottom:14px">
+    <div class="card c-amber"><div class="cl">Missing Jobs</div><div class="cv" id="miss-total">—</div><div class="cs">All processes</div></div>
+    <div class="card c-red"><div class="cl">Pending Qty</div><div class="cv" id="miss-pqty">—</div><div class="cs">Total sheets</div></div>
+    <div class="card"><div class="cl">Cut SH</div><div class="cv" id="miss-cutsh">—</div><div class="cs">Total</div></div>
+    <div class="card c-blue"><div class="cl">Customers Affected</div><div class="cv" id="miss-cust">—</div><div class="cs">Unique</div></div>
+  </div>
+
+  <!-- Missing Charts -->
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box">
+      <h3>🔴 Process wise Missing — % Share (Donut)</h3>
+      <canvas id="chart-miss-donut" style="max-height:220px"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>👥 Top 10 Customers — Missing Jobs</h3>
+      <canvas id="chart-miss-cust" style="max-height:220px"></canvas>
+    </div>
+  </div>
+
+  <!-- TOP: Missing by Process table -->
+  <div class="sec" style="margin-bottom:14px">
+    <div class="sec-head"><h2 id="miss-proc-title">Missing List — Upto —</h2><span id="miss-date">—</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Process / Status</th><th class="num">Pending Qty</th><th class="num">Tot. Cut SH</th><th class="num">Job Count</th><th class="num">% Share</th></tr></thead>
+      <tbody id="missing-process-table"><tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">—</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- BELOW: Customer wise missing list -->
+  <div class="sec">
+    <div class="sec-head"><h2>Missing List — By Customer (All Processes)</h2><span id="miss-cust-label">—</span></div>
+    <div class="search-box"><input type="text" id="miss-search" placeholder="Search customer..." oninput="filterMissingCust()"></div>
+    <div class="table-wrap" style="overflow-x:auto"><table>
+      <thead><tr><th>#</th><th>Customer Name</th><th class="num">Pending Qty</th><th class="num">Tot. Cut SH</th><th class="num">Total Jobs</th><th class="num">Not Started</th><th class="num">PASTING</th><th class="num">PH</th><th class="num">SCREEN</th><th class="num">FOIL</th><th class="num">LAMINATION</th><th class="num">VDP</th><th class="num">VR</th><th class="num">FRONT BAL</th></tr></thead>
+      <tbody id="missing-cust-table"><tr><td colspan="14" style="text-align:center;color:var(--text2);padding:20px">—</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div id="tab-customers" class="panel">
+  <!-- Customer Chart -->
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>🏆 Top 10 Customers by Total Jobs</h3>
+      <canvas id="chart-cust-top10" style="max-height:260px"></canvas>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><h2>Customer Wise Jobs — Jan to Today</h2><span id="cust-count">—</span></div>
+    <div class="search-box"><input type="text" id="cust-search" placeholder="Search customer..." oninput="filterCust()"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Customer Name</th><th class="num">Total Jobs</th><th class="num">DD</th><th class="num">Not Started</th><th class="num">Cancelled</th><th>Share</th></tr></thead>
+      <tbody id="cust-table"><tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">Upload AIA Track Record to load data</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ===================== STATE =====================
+var D = {
+  loaded: false,
+  lastUpdate: '—',
+  startDate: new Date('2026-01-01'),
+  endDate: new Date(),
+  totalJobs: 0, dd: 0, ns: 0, cancel: 0, ph: 0, screen: 0, pasting: 0,
+  monthly: [],
+  customers: [],
+  missingCust: [],
+  missingByProcess: [],
+  floorJobs: [],
+  foldJobs: []
+};
+
+function fmt(n){ if(!n && n!==0) return '—'; return Math.round(n).toLocaleString('en-IN'); }
+function fmtDate(d){ if(!d) return '—'; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
+function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '0%'; }
+
+// ===================== TABS =====================
+function showTab(id, el){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById('tab-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ===================== LOAD AIA TRACK RECORD =====================
+function loadTrackRecord(input){
+  var file = input.files[0]; if(!file) return;
+  document.getElementById('file-status').textContent = 'Reading '+file.name+'...';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    setTimeout(function(){
+    try{
+      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true,bookVBA:false,bookFiles:false,bookProps:false});
+      // Track record sheet dhundho
+      var trSheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().includes('track') || n.toLowerCase().includes('record'); }) || wb.SheetNames[0];
+      var trSheet = wb.Sheets[trSheetName];
+      var fjSheet = wb.Sheets['FLOOR JOBS'];
+      // MAX_COLS cap — blank columns ignore
+      if(trSheet && trSheet['!ref']){
+        var range = XLSX.utils.decode_range(trSheet['!ref']);
+        if(range.e.c > 120) range.e.c = 120;
+        trSheet['!ref'] = XLSX.utils.encode_range(range);
+      }
+      setTimeout(function(){
+        try{
+          var trData = XLSX.utils.sheet_to_json(trSheet,{defval:''});
+          processTrackRecord(trData);
+          if(fjSheet) processFloorJobs(fjSheet);
+          document.getElementById('aia-badge').textContent = '✓ '+file.name.substring(0,20);
+          document.getElementById('aia-badge').className = 'file-badge fb-loaded';
+          document.getElementById('file-status').textContent = '✓ '+trData.length+' rows loaded';
+        }catch(err2){
+          document.getElementById('file-status').textContent = '✗ '+err2.message;
+        }
+      },100);
+    }catch(err){
+      document.getElementById('file-status').textContent = '✗ '+err.message;
+      document.getElementById('aia-badge').textContent = 'Error';
+    }
+    },100);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function processTrackRecord(data){
+  if(!data.length) return;
+  var keys = Object.keys(data[0]);
+  var dateKey = keys.find(function(k){return k.toLowerCase().includes('doc')&&k.toLowerCase().includes('date')}) || keys[1];
+  var statusKey = 'Job_Status';
+  var custKey = 'CUSTOMER NAME';
+  var pendKey = keys.find(function(k){return k.includes('Pending')}) || 'Pending\nQty ';
+  var cutKey  = keys.find(function(k){return k.includes('Cut')}) || 'Tot. Cut\n   SH';
+  var nextKey = 'NextProcess';
+  var jcnoKey = keys.find(function(k){return k.toUpperCase().includes('JCNO')||k.toUpperCase().includes('JC NO')||k.toUpperCase().includes('JC_NO');}) || 'JCNO';
+
+  // Filter Jan 2026 to latest date in file
+  var allRows = data.map(function(r){
+    var d = new Date(r[dateKey]); return {r:r, d:d};
+  }).filter(function(x){ return x.d >= new Date('2026-01-01') && !isNaN(x.d); });
+
+  if(!allRows.length){ alert('No data found from Jan 2026 onwards'); return; }
+
+  // Find date range
+  var maxD = new Date(Math.max.apply(null, allRows.map(function(x){return x.d;})));
+  D.endDate = maxD; D.startDate = new Date('2026-01-01');
+  D.lastUpdate = fmtDate(maxD);
+
+  var rows = allRows.map(function(x){return x.r;});
+  // Unique JCNO count helper
+  function uniqJCNO(arr){ var s={}; arr.forEach(function(r){s[r[jcnoKey]]=1;}); return Object.keys(s).length; }
+  D.totalJobs = uniqJCNO(rows);
+  D.dd       = uniqJCNO(rows.filter(function(r){return r[statusKey]==='DD';}));
+  D.ns       = uniqJCNO(rows.filter(function(r){return r[statusKey]==='Job Not Started';}));
+  D.cancel   = uniqJCNO(rows.filter(function(r){return r[statusKey]==='CANCELLED';}));
+  D.ph       = uniqJCNO(rows.filter(function(r){return r[statusKey]==='PH';}));
+  D.screen   = uniqJCNO(rows.filter(function(r){return r[statusKey]==='SCREEN';}));
+  D.pasting  = uniqJCNO(rows.filter(function(r){return r[statusKey]==='PASTING';}));
+
+  // Monthly breakdown — all months from Jan to endDate
+  var monthMap = {};
+  rows.forEach(function(r){
+    var d = new Date(r[dateKey]);
+    var key = d.getFullYear()+'-'+(d.getMonth()+1);
+    var lbl = ['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]+' '+d.getFullYear();
+    if(!monthMap[key]) monthMap[key]={month:lbl,jcnos:{},dd:{},ns:{},cancel:{},ph:{},screen:{},pasting:{},sort:d.getFullYear()*100+d.getMonth()};
+    var s=r[statusKey]; var jc=r[jcnoKey];
+    monthMap[key].jcnos[jc]=1;
+    if(s==='DD') monthMap[key].dd[jc]=1;
+    else if(s==='Job Not Started') monthMap[key].ns[jc]=1;
+    else if(s==='CANCELLED') monthMap[key].cancel[jc]=1;
+    else if(s==='PH') monthMap[key].ph[jc]=1;
+    else if(s==='SCREEN') monthMap[key].screen[jc]=1;
+    else if(s==='PASTING') monthMap[key].pasting[jc]=1;
+  });
+  D.monthly = Object.values(monthMap).sort(function(a,b){return a.sort-b.sort;}).map(function(m){
+    return {month:m.month,sort:m.sort,
+      total:Object.keys(m.jcnos).length, dd:Object.keys(m.dd).length,
+      ns:Object.keys(m.ns).length, cancel:Object.keys(m.cancel).length,
+      ph:Object.keys(m.ph).length, screen:Object.keys(m.screen).length,
+      pasting:Object.keys(m.pasting).length};
+  });
+
+  // Status breakdown — unique JCNO per status with qty and cut
+  var stMap={};
+  rows.forEach(function(r){
+    var s=r[statusKey]||'Unknown'; var jc=r[jcnoKey];
+    if(!stMap[s]) stMap[s]={jcnos:{},pqty:0,cutsh:0};
+    if(!stMap[s].jcnos[jc]){
+      stMap[s].jcnos[jc]=1;
+      stMap[s].pqty += parseFloat(r[pendKey])||0;
+      stMap[s].cutsh += parseFloat(r[cutKey])||0;
+    }
+  });
+  D.statusBreakdown = Object.entries(stMap).map(function(e){
+    return [e[0], Object.keys(e[1].jcnos).length, e[1].pqty, e[1].cutsh];
+  }).sort(function(a,b){return b[1]-a[1];});
+
+  // Customers — unique JCNO
+  var custMap={};
+  rows.forEach(function(r){
+    var c=String(r[custKey]).trim(); var jc=r[jcnoKey];
+    if(!custMap[c]) custMap[c]={name:c,jcnos:{},dd:{},ns:{},cancel:{}};
+    custMap[c].jcnos[jc]=1;
+    var s=r[statusKey];
+    if(s==='DD') custMap[c].dd[jc]=1;
+    else if(s==='Job Not Started') custMap[c].ns[jc]=1;
+    else if(s==='CANCELLED') custMap[c].cancel[jc]=1;
+  });
+  D.customers = Object.values(custMap).map(function(c){
+    return {name:c.name, total:Object.keys(c.jcnos).length, dd:Object.keys(c.dd).length,
+            ns:Object.keys(c.ns).length, cancel:Object.keys(c.cancel).length};
+  }).sort(function(a,b){return b.total-a.total;});
+
+  // Missing list by customer — unique JCNO
+  var today = new Date(); today.setHours(23,59,59,999);
+  var jan2026 = new Date('2026-01-01');
+
+  // Revised Commitment Date column key
+  var revCommitKey = keys.find(function(k){
+    return k.toLowerCase().replace(/\s+/g,'').includes('revisedcommit') ||
+           k.toLowerCase().replace(/\s+/g,'').includes('revisedcommitement');
+  }) || 'Revised Commitement date';
+
+  var allowedMiss = ['LABLE CUTTING','FOIL','FRONT BAL','Job Not Started','LAMINATION','PASTING','PH','SCREEN','VDP','VR'];
+
+  // Filter: allowed status + revised commit date Jan 2026 to today
+  var missRows = rows.filter(function(r){
+    if(allowedMiss.indexOf(r[statusKey]) < 0) return false;
+    var rd = new Date(r[revCommitKey]);
+    if(isNaN(rd)) return false;
+    return rd >= jan2026 && rd <= today;
+  });
+
+  // All missing process statuses (excluding Job Not Started for separate tracking)
+  var missProcesses = ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL','LABLE CUTTING'];
+
+  var missMap={};
+  missRows.forEach(function(r){
+    var c=String(r[custKey]).trim(); var jc=r[jcnoKey];
+    var s=r[statusKey];
+    if(!missMap[c]) {
+      missMap[c]={name:c,jcnos:{},pqty:0,cutsh:0,nsJcnos:{},procJcnos:{}};
+      missProcesses.forEach(function(p){ missMap[c].procJcnos[p]={}; });
+    }
+    if(!missMap[c].jcnos[jc]){
+      missMap[c].jcnos[jc]=1;
+      try{missMap[c].pqty+=parseFloat(r[pendKey])||0;}catch(e){}
+      try{missMap[c].cutsh+=parseFloat(r[cutKey])||0;}catch(e){}
+    }
+    if(s==='Job Not Started') missMap[c].nsJcnos[jc]=1;
+    missProcesses.forEach(function(p){ if(s===p) missMap[c].procJcnos[p][jc]=1; });
+  });
+  D.missingCust = Object.values(missMap).map(function(c){
+    var procCounts={};
+    missProcesses.forEach(function(p){ procCounts[p]=Object.keys(c.procJcnos[p]).length; });
+    return {
+      name:c.name,
+      jobs:Object.keys(c.jcnos).length,
+      nsJobs:Object.keys(c.nsJcnos).length,
+      pqty:c.pqty, cutsh:c.cutsh,
+      proc:procCounts
+    };
+  }).sort(function(a,b){return b.jobs-a.jobs;});
+  D.missProcesses = missProcesses;
+
+  // Missing by process/status
+  var mpMap={};
+  missRows.forEach(function(r){
+    var s=r[statusKey]; var jc=r[jcnoKey];
+    if(!mpMap[s]) mpMap[s]={status:s,jcnos:{},pqty:0,cutsh:0};
+    if(!mpMap[s].jcnos[jc]){
+      mpMap[s].jcnos[jc]=1;
+      try{mpMap[s].pqty+=parseFloat(r[pendKey])||0;}catch(e){}
+      try{mpMap[s].cutsh+=parseFloat(r[cutKey])||0;}catch(e){}
+    }
+  });
+  D.missingByProcess = allowedMiss.map(function(s){
+    if(!mpMap[s]) return null;
+    return {status:s, jobs:Object.keys(mpMap[s].jcnos).length, pqty:mpMap[s].pqty, cutsh:mpMap[s].cutsh};
+  }).filter(Boolean);
+
+  // Build floor jobs from track record — Jan 2026 onwards only
+  var floorStatuses=['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR'];
+  var fjMap={};
+  var floorJan2026 = new Date('2026-01-01');
+  rows.forEach(function(r){
+    var s=r[statusKey]; var jc=r[jcnoKey];
+    if(floorStatuses.indexOf(s)<0) return;
+    // Filter by Revised Commitment Date >= Jan 2026
+    var rd=new Date(r[revCommitKey]);
+    if(isNaN(rd) || rd < floorJan2026) return;
+    if(!fjMap[s]) fjMap[s]={proc:s,pqty:0,cutsh:0,jcnos:{},moMap:{}};
+    var pq=parseFloat(r[pendKey])||0, cs=parseFloat(r[cutKey])||0;
+    if(!fjMap[s].jcnos[jc]){
+      fjMap[s].jcnos[jc]=1;
+      fjMap[s].pqty+=pq; fjMap[s].cutsh+=cs;
+    }
+    // Month from Revised Commitment Date
+    var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()];
+    var moSort=rd.getFullYear()*100+rd.getMonth();
+    if(!fjMap[s].moMap[mo]) fjMap[s].moMap[mo]={mo:mo,pqty:0,cutsh:0,jcnos:{},sort:moSort};
+    if(!fjMap[s].moMap[mo].jcnos[jc]){
+      fjMap[s].moMap[mo].jcnos[jc]=1;
+      fjMap[s].moMap[mo].pqty+=pq; fjMap[s].moMap[mo].cutsh+=cs;
+    }
+  });
+  D.floorJobs = floorStatuses.map(function(s){
+    var f=fjMap[s]; if(!f) return null;
+    var subs=Object.values(f.moMap).sort(function(a,b){return a.sort-b.sort;}).map(function(m){
+      return {mo:m.mo, pqty:m.pqty, cutsh:m.cutsh, cnt:Object.keys(m.jcnos).length};
+    });
+    return {proc:s, pqty:f.pqty, cutsh:f.cutsh, cnt:Object.keys(f.jcnos).length, subs:subs};
+  }).filter(Boolean);
+
+  D.loaded = true;
+  renderAll();
+}
+
+function processFloorJobs(ws){
+  var data = XLSX.utils.sheet_to_json(ws,{defval:'',header:1});
+  // Parse floor jobs: rows with bold process names
+  var floorMap={}, foldArr=[];
+  var currentProc=null;
+  data.forEach(function(row){
+    if(!row[0]) return;
+    var lbl=String(row[0]).trim();
+    var pqty=parseFloat(row[1])||0, cutsh=parseFloat(row[2])||0, cnt=parseInt(row[3])||0;
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if(lbl==='Row Labels'||lbl==='Grand Total'||!lbl) return;
+    if(months.indexOf(lbl)>=0){
+      if(currentProc && floorMap[currentProc]) floorMap[currentProc].subs.push({mo:lbl,pqty:pqty,cutsh:cutsh,cnt:cnt});
+    } else {
+      currentProc=lbl;
+      if(!floorMap[lbl]) floorMap[lbl]={proc:lbl,pqty:pqty,cutsh:cutsh,cnt:cnt,subs:[]};
+      else { floorMap[lbl].pqty=pqty; floorMap[lbl].cutsh=cutsh; floorMap[lbl].cnt=cnt; }
+    }
+  });
+  D.floorJobs = Object.values(floorMap).filter(function(f){ return f.proc && f.pqty>0; });
+}
+
+// ===================== RENDER =====================
+function renderAll(){
+  if(!D.loaded) return;
+
+  // Date bar
+  var periodStr = 'Jan 2026 – '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][D.endDate.getMonth()]+' '+D.endDate.getFullYear();
+  document.getElementById('period-label').textContent = periodStr;
+  document.getElementById('last-update').textContent = D.lastUpdate;
+  document.getElementById('total-records').textContent = fmt(D.totalJobs);
+  document.getElementById('date-display').textContent = 'Last updated: '+D.lastUpdate+' | '+periodStr;
+
+  // Cards
+  document.getElementById('ov-total').textContent = fmt(D.totalJobs);
+  document.getElementById('ov-range').textContent = periodStr;
+  document.getElementById('ov-dd').textContent = fmt(D.dd);
+  document.getElementById('ov-dd-pct').textContent = pct(D.dd,D.totalJobs)+' of total';
+  document.getElementById('ov-ns').textContent = fmt(D.ns);
+  document.getElementById('ov-ns-pct').textContent = pct(D.ns,D.totalJobs)+' pending';
+  document.getElementById('ov-cancel').textContent = fmt(D.cancel);
+  document.getElementById('ov-cancel-pct').textContent = pct(D.cancel,D.totalJobs)+' of total';
+  document.getElementById('ov-ph').textContent = fmt(D.ph);
+  document.getElementById('ov-screen').textContent = fmt(D.screen);
+  document.getElementById('ov-pasting').textContent = fmt(D.pasting);
+  var floorTotal = D.floorJobs.reduce(function(a,f){return a+f.cnt;},0);
+  document.getElementById('ov-floor').textContent = fmt(floorTotal);
+  function floorCnt(proc){ var f=D.floorJobs.find(function(x){return x.proc===proc;}); return f?f.cnt:0; }
+  document.getElementById('ov-foil').textContent    = fmt(floorCnt('FOIL'));
+  document.getElementById('ov-frontbal').textContent = fmt(floorCnt('FRONT BAL'));
+  document.getElementById('ov-lam').textContent     = fmt(floorCnt('LAMINATION'));
+  document.getElementById('ov-vdp').textContent     = fmt(floorCnt('VDP'));
+  document.getElementById('ov-vr').textContent      = fmt(floorCnt('VR'));
+
+  // Monthly table
+  var mt='', tj=0,tdd=0,tns=0,tc=0;
+  D.monthly.forEach(function(m){
+    mt+='<tr><td>'+m.month+'</td><td class="num">'+fmt(m.total)+'</td><td class="num">'+fmt(m.dd)+'</td><td class="num">'+fmt(m.ns)+'</td><td class="num">'+fmt(m.cancel)+'</td></tr>';
+    tj+=m.total;tdd+=m.dd;tns+=m.ns;tc+=m.cancel;
+  });
+  mt+='<tr class="total-row"><td>Grand Total</td><td class="num">'+fmt(tj)+'</td><td class="num">'+fmt(tdd)+'</td><td class="num">'+fmt(tns)+'</td><td class="num">'+fmt(tc)+'</td></tr>';
+  document.getElementById('monthly-table').innerHTML=mt;
+  document.getElementById('ov-date-range').textContent=periodStr;
+
+  // Status table
+  var stColors={'DD':'#1a5fa8','Job Not Started':'#8a5200','CANCELLED':'#a02020','PH':'#5c3fa0','SCREEN':'#0d7377','PASTING':'#b5541a'};
+  var st='';
+  D.statusBreakdown.forEach(function(x){
+    var c=stColors[x[0]]||'#888';
+    st+='<tr><td>'+x[0]+'</td><td class="num">'+fmt(x[1])+'</td><td class="num">'+pct(x[1],D.totalJobs)+'</td><td><div class="bar-wrap" style="width:100px"><div class="bar-fill" style="width:'+Math.round(x[1]/D.statusBreakdown[0][1]*100)+'%;background:'+c+'"></div></div></td></tr>';
+  });
+  document.getElementById('status-table').innerHTML=st;
+
+  // Floor jobs
+  renderFloorTable();
+
+  // Missing list
+  renderMissingTables();
+
+  // Customers
+  renderCustTable(D.customers);
+  document.getElementById('cust-count').textContent=D.customers.length+' customers';
+
+  // Charts
+  renderCharts();
+}
+
+// ===================== CHARTS =====================
+var _charts = {};
+function destroyChart(id){ if(_charts[id]){ _charts[id].destroy(); delete _charts[id]; } }
+
+function renderCharts(){
+  if(!D.loaded) return;
+
+  var procColors=['#5c3fa0','#b5541a','#0d7377','#c47a2b','#2a6e2a','#1a5fa8','#a02020','#888'];
+  var missColors=['#a02020','#2a6e2a','#8a5200','#1a5fa8','#5c3fa0','#0d7377','#b5541a','#888','#c47a2b'];
+
+  // ---- 1. Monthly Job Count bar chart (Overview tab) ----
+  destroyChart('monthly');
+  var mCtx = document.getElementById('chart-monthly');
+  if(mCtx && D.monthly.length){
+    var mLabels = D.monthly.map(function(m){return m.month.substring(0,3)+' '+m.sort%100? m.month.split(' ')[0].substring(0,3)+' '+m.month.split(' ')[1].slice(2) : m.month;});
+    mLabels = D.monthly.map(function(m){ var p=m.month.split(' '); return p[0].substring(0,3)+"'"+p[1].slice(2); });
+    _charts['monthly'] = new Chart(mCtx, {
+      type:'bar',
+      data:{
+        labels: mLabels,
+        datasets:[
+          {label:'Total Jobs', data:D.monthly.map(function(m){return m.total;}), backgroundColor:'#1a5fa8cc', borderRadius:4},
+          {label:'Dispatched', data:D.monthly.map(function(m){return m.dd;}), backgroundColor:'#2a6e2acc', borderRadius:4},
+          {label:'Not Started', data:D.monthly.map(function(m){return m.ns;}), backgroundColor:'#8a5200cc', borderRadius:4},
+          {label:'Cancelled', data:D.monthly.map(function(m){return m.cancel;}), backgroundColor:'#a02020cc', borderRadius:4}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},
+        scales:{
+          x:{ticks:{font:{size:10}},grid:{display:false}},
+          y:{ticks:{font:{size:10}},grid:{color:'#f0efe9'}}
+        }
+      }
+    });
+  }
+
+  // ---- 2. Floor Jobs by Process bar chart (Floor tab) ----
+  destroyChart('floor');
+  var fCtx = document.getElementById('chart-floor');
+  if(fCtx && D.floorJobs.length){
+    var fLabels = D.floorJobs.map(function(f){return f.proc;});
+    var fColors = D.floorJobs.map(function(f,i){return procColors[i%procColors.length];});
+    _charts['floor'] = new Chart(fCtx, {
+      type:'bar',
+      data:{
+        labels: fLabels,
+        datasets:[
+          {label:'Job Count', data:D.floorJobs.map(function(f){return f.cnt;}), backgroundColor:fColors, borderRadius:5},
+          {label:'Pending Qty (÷100)', data:D.floorJobs.map(function(f){return Math.round(f.pqty/100);}), backgroundColor:fColors.map(function(c){return c+'55';}), borderRadius:5}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(ctx){
+            if(ctx.datasetIndex===1) return 'Pending Qty: '+fmt(ctx.raw*100);
+            return ctx.dataset.label+': '+ctx.raw;
+          }}}
+        },
+        scales:{
+          x:{ticks:{font:{size:11}},grid:{display:false}},
+          y:{ticks:{font:{size:10}},grid:{color:'#f0efe9'}}
+        }
+      }
+    });
+  }
+
+  // ---- 3. Process wise Missing List — Donut (Missing tab) ----
+  destroyChart('miss-donut');
+  var dCtx = document.getElementById('chart-miss-donut');
+  if(dCtx && D.missingByProcess.length){
+    _charts['miss-donut'] = new Chart(dCtx, {
+      type:'doughnut',
+      data:{
+        labels: D.missingByProcess.map(function(x){return x.status;}),
+        datasets:[{
+          data: D.missingByProcess.map(function(x){return x.jobs;}),
+          backgroundColor: missColors.slice(0, D.missingByProcess.length),
+          borderWidth:2, borderColor:'#fff', hoverOffset:8
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        cutout:'60%',
+        plugins:{
+          legend:{position:'right',labels:{font:{size:10},boxWidth:12,padding:8}},
+          tooltip:{callbacks:{label:function(ctx){
+            var tot=ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+            return ctx.label+': '+ctx.raw+' ('+Math.round(ctx.raw/tot*100)+'%)';
+          }}}
+        }
+      }
+    });
+  }
+
+  // ---- 4. Top 10 Customers Missing — horizontal bar (Missing tab) ----
+  destroyChart('miss-cust');
+  var mcCtx = document.getElementById('chart-miss-cust');
+  if(mcCtx && D.missingCust.length){
+    var top10 = D.missingCust.slice(0,10);
+    _charts['miss-cust'] = new Chart(mcCtx, {
+      type:'bar',
+      data:{
+        labels: top10.map(function(c){return c.name.length>22?c.name.substring(0,22)+'…':c.name;}),
+        datasets:[
+          {label:'Total Missing', data:top10.map(function(c){return c.jobs;}), backgroundColor:'#8a520088', borderRadius:4},
+          {label:'Not Started', data:top10.map(function(c){return c.nsJobs||0;}), backgroundColor:'#a0202088', borderRadius:4}
+        ]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:12}}},
+        scales:{
+          x:{ticks:{font:{size:10}},grid:{color:'#f0efe9'}},
+          y:{ticks:{font:{size:9}},grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  // ---- 5. Top 10 Customers Total Jobs — horizontal bar (Customers tab) ----
+  destroyChart('cust-top10');
+  var ctCtx = document.getElementById('chart-cust-top10');
+  if(ctCtx && D.customers.length){
+    var top10c = D.customers.slice(0,10);
+    _charts['cust-top10'] = new Chart(ctCtx, {
+      type:'bar',
+      data:{
+        labels: top10c.map(function(c){return c.name.length>25?c.name.substring(0,25)+'…':c.name;}),
+        datasets:[
+          {label:'Total Jobs', data:top10c.map(function(c){return c.total;}), backgroundColor:'#1a5fa899', borderRadius:4},
+          {label:'Dispatched', data:top10c.map(function(c){return c.dd;}), backgroundColor:'#2a6e2a99', borderRadius:4},
+          {label:'Not Started', data:top10c.map(function(c){return c.ns;}), backgroundColor:'#8a520099', borderRadius:4},
+          {label:'Cancelled', data:top10c.map(function(c){return c.cancel;}), backgroundColor:'#a0202099', borderRadius:4}
+        ]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},
+        scales:{
+          x:{ticks:{font:{size:10}},grid:{color:'#f0efe9'}},
+          y:{ticks:{font:{size:10}},grid:{display:false}}
+        }
+      }
+    });
+  }
+}
+
+function renderFloorTable(){
+  var procColors={'PH':'#5c3fa0','PASTING':'#b5541a','SCREEN':'#0d7377','FOIL':'#c47a2b','FRONT BAL':'#2a6e2a','LAMINATION':'#1a5fa8','VDP':'#a02020','VR':'#555'};
+  var procBgs={'PH':'#eeebfa','PASTING':'#fde9d9','SCREEN':'#e0f5f5','FOIL':'#fdf5e0','FRONT BAL':'#e8f5e8','LAMINATION':'#e8f0fb','VDP':'#faeaea','VR':'#f5f5f5'};
+  var html='';
+  var floorData = D.floorJobs;
+  if(!floorData.length){ document.getElementById('floor-table').innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text2)">Upload AIA Track Record to load floor jobs data</td></tr>'; return; }
+  var tp=0,tc=0,tct=0;
+  floorData.forEach(function(f){
+    var fg=procColors[f.proc]||'#1a1a2e', bg=procBgs[f.proc]||'#ebf4fb';
+    html+='<tr style="background:'+bg+'"><td style="font-weight:700;color:'+fg+'">'+f.proc+'</td><td class="num" style="font-weight:700;color:'+fg+'">'+fmt(f.pqty)+'</td><td class="num" style="font-weight:700;color:'+fg+'">'+fmt(f.cutsh)+'</td><td class="num" style="font-weight:700;color:'+fg+'">'+f.cnt+'</td><td><span class="badge b-floor">In Floor</span></td></tr>';
+    (f.subs||[]).forEach(function(s){
+      html+='<tr class="sub-row"><td>'+s.mo+'</td><td class="num">'+fmt(s.pqty)+'</td><td class="num">'+fmt(s.cutsh)+'</td><td class="num">'+s.cnt+'</td><td></td></tr>';
+    });
+    tp+=f.pqty;tc+=f.cutsh;tct+=f.cnt;
+  });
+  html+='<tr class="total-row"><td>Grand Total</td><td class="num">'+fmt(tp)+'</td><td class="num">'+fmt(tc)+'</td><td class="num">'+fmt(tct)+'</td><td></td></tr>';
+  document.getElementById('floor-table').innerHTML=html;
+  document.getElementById('floor-date').textContent='As of '+D.lastUpdate;
+
+  // Fold table — dynamic from statusBreakdown
+  var foldProcs=['FOLD','OUTSERT FOLDING','Job Not Started','FRONT BAL','VR'];
+  var foldColors={'FOLD':'#16537e','OUTSERT FOLDING':'#16537e','Job Not Started':'#8a5200','FRONT BAL':'#2a6e2a','VR':'#555'};
+  var foldBgs={'FOLD':'#ebf4fb','OUTSERT FOLDING':'#ebf4fb','Job Not Started':'#fdf0d8','FRONT BAL':'#e8f5e8','VR':'#f5f5f5'};
+  var stLookup={};
+  D.statusBreakdown.forEach(function(x){ stLookup[x[0]]={cnt:x[1],pqty:x[2],cutsh:x[3]}; });
+  var foldHtml='', fp2=0,fc2=0,fj2=0;
+  foldProcs.forEach(function(proc){
+    var d=stLookup[proc]; if(!d||!d.cnt) return;
+    var fg=foldColors[proc]||'#333', bg=foldBgs[proc]||'#fff';
+    foldHtml+='<tr style="background:'+bg+'"><td style="font-weight:700;color:'+fg+'">'+proc+'</td>'
+      +'<td class="num" style="color:'+fg+';font-weight:600">'+fmt(d.pqty)+'</td>'
+      +'<td class="num" style="color:'+fg+';font-weight:600">'+fmt(d.cutsh)+'</td>'
+      +'<td class="num" style="color:'+fg+';font-weight:600">'+d.cnt+'</td></tr>';
+    fp2+=d.pqty; fc2+=d.cutsh; fj2+=d.cnt;
+  });
+  foldHtml+='<tr class="total-row"><td>Grand Total</td><td class="num">'+fmt(fp2)+'</td><td class="num">'+fmt(fc2)+'</td><td class="num">'+fj2+'</td></tr>';
+  document.getElementById('fold-table').innerHTML=foldHtml;
+}
+
+function renderMissingTables(){
+  var total=D.totalJobs;
+  // By process
+  var mp=''; var tp=0,tc2=0,tj2=0;
+  var procBgs={'Job Not Started':'#fdf0d8','FOIL':'#fdf5e0','LAMINATION':'#e8f0fb','PASTING':'#fde9d9','PH':'#eeebfa','SCREEN':'#e0f5f5','VDP':'#faeaea','FRONT BAL':'#e8f5e8','LABLE CUTTING':'#ebf4fb'};
+  var totMiss=D.missingByProcess.reduce(function(a,x){return a+x.jobs;},0);
+  D.missingByProcess.forEach(function(x,i){
+    var bg=procBgs[x.status]||(i%2===0?'#ebf4fb':'#fff');
+    var p=totMiss?Math.round(x.jobs/totMiss*100)+'%':'—';
+    mp+='<tr style="background:'+bg+'"><td>'+x.status+'</td><td class="num">'+fmt(x.pqty)+'</td><td class="num">'+fmt(x.cutsh)+'</td><td class="num">'+x.jobs+'</td><td class="num">'+p+'</td></tr>';
+    tp+=x.pqty;tc2+=x.cutsh;tj2+=x.jobs;
+  });
+  mp+='<tr class="total-row"><td>Grand Total</td><td class="num">'+fmt(tp)+'</td><td class="num">'+fmt(tc2)+'</td><td class="num">'+tj2+'</td><td class="num">100%</td></tr>';
+  document.getElementById('missing-process-table').innerHTML=mp;
+  document.getElementById('miss-date').textContent='Upto '+D.lastUpdate;
+  if(document.getElementById('miss-proc-title'))
+    document.getElementById('miss-proc-title').textContent='Missing List — Upto '+D.lastUpdate;
+
+  // Summary cards — total across all missing statuses
+  var totalPqty=D.missingCust.reduce(function(a,b){return a+b.pqty;},0);
+  var totalCutSh=D.missingCust.reduce(function(a,b){return a+b.cutsh;},0);
+  var totalJobs=D.missingCust.reduce(function(a,b){return a+b.jobs;},0);
+  var totalNS=D.missingCust.reduce(function(a,b){return a+(b.nsJobs||0);},0);
+  document.getElementById('miss-total').textContent=fmt(totalJobs);
+  document.getElementById('ov-ns').textContent=fmt(totalNS); // sync overview card
+  document.getElementById('miss-pqty').textContent=(totalPqty/100000).toFixed(1)+'L';
+  document.getElementById('miss-cutsh').textContent=(totalCutSh/100000).toFixed(1)+'L';
+  document.getElementById('miss-cust').textContent=D.missingCust.length;
+  document.getElementById('miss-cust-label').textContent=totalJobs+' total missing jobs | '+totalNS+' Not Started | '+D.missingCust.length+' customers';
+
+  renderMissingCustTable(D.missingCust);
+}
+
+function renderMissingCustTable(data){
+  var procs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+  var html=''; var tp=0,tc=0,tj=0,tns=0;
+  var procTotals={}; procs.forEach(function(p){procTotals[p]=0;});
+  data.forEach(function(r,i){
+    var bg=i%2===0?'#ebf4fb':'#fff';
+    html+='<tr style="background:'+bg+'">'
+      +'<td>'+(i+1)+'</td>'
+      +'<td>'+r.name+'</td>'
+      +'<td class="num">'+fmt(r.pqty)+'</td>'
+      +'<td class="num">'+fmt(r.cutsh)+'</td>'
+      +'<td class="num" style="font-weight:700">'+r.jobs+'</td>'
+      +'<td class="num" style="color:#8a5200;font-weight:600">'+(r.nsJobs||0)+'</td>';
+    procs.forEach(function(p){
+      var v=(r.proc&&r.proc[p])||0;
+      html+='<td class="num">'+(v>0?v:0)+'</td>';
+      procTotals[p]+=v;
+    });
+    html+='</tr>';
+    tp+=r.pqty;tc+=r.cutsh;tj+=r.jobs;tns+=(r.nsJobs||0);
+  });
+  // Grand total row
+  html+='<tr class="total-row"><td></td><td>Grand Total</td><td class="num">'+fmt(tp)+'</td><td class="num">'+fmt(tc)+'</td><td class="num">'+tj+'</td><td class="num">'+tns+'</td>';
+  procs.forEach(function(p){ html+='<td class="num">'+(procTotals[p]||0)+'</td>'; });
+  html+='</tr>';
+  document.getElementById('missing-cust-table').innerHTML=html;
+}
+
+function renderCustTable(data){
+  var maxJ=data.length?Math.max.apply(null,data.map(function(r){return r.total;})):1;
+  var total=D.totalJobs;
+  var colors=['#1a5fa8','#5c3fa0','#2a6e2a','#8a5200','#a02020','#0d7377','#b5541a'];
+  var html='';
+  data.forEach(function(r,i){
+    var bw=Math.round(r.total/maxJ*100);
+    var p=total?Math.round(r.total/total*100)+'%':'—';
+    var bg=i%2===0?'#ebf4fb':'#fff';
+    html+='<tr style="background:'+bg+'"><td>'+(i+1)+'</td><td>'+r.name+'</td><td class="num">'+fmt(r.total)+'</td><td class="num">'+fmt(r.dd)+'</td><td class="num">'+fmt(r.ns)+'</td><td class="num">'+fmt(r.cancel)+'</td><td><div class="bar-wrap" style="width:80px"><div class="bar-fill" style="width:'+bw+'%;background:'+colors[i%7]+'"></div></div> '+p+'</td></tr>';
+  });
+  document.getElementById('cust-table').innerHTML=html||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text2)">No data</td></tr>';
+  document.getElementById('cust-count').textContent=data.length+' customers';
+}
+
+
+
+// Filters
+function filterCust(){
+  var q=document.getElementById('cust-search').value.toLowerCase();
+  renderCustTable(D.customers.filter(function(r){return r.name.toLowerCase().includes(q);}));
+}
+function filterMissingCust(){
+  var q=document.getElementById('miss-search').value.toLowerCase();
+  renderMissingCustTable(D.missingCust.filter(function(r){return r.name.toLowerCase().includes(q);}));
+}
+
+// ===================== DOWNLOAD EXCEL =====================
+function downloadExcel(){
+  if(!D.loaded){ alert('Please upload AIA Track Record first'); return; }
+
+  // SheetJS with full styles support (xlsx.full.min.js supports styles)
+  var wb = XLSX.utils.book_new();
+
+  // Layout: T1=Floor Jobs (cols 0-4), T2=Fold+Missing+Customers stacked (cols 6-19)
+  var T1=0, T2=6, COLS=21;
+
+  var PROC_FG  = {PH:'FF5C3FA0',PASTING:'FFB5541A',SCREEN:'FF0D7377',FOIL:'FFC47A2B','FRONT BAL':'FF2A6E2A',LAMINATION:'FF1A5FA8',VDP:'FFA02020',VR:'FF555555'};
+  var PROC_BG  = {PH:'FFEEEBFA',PASTING:'FFFDE9D9',SCREEN:'FFE0F5F5',FOIL:'FFFDF5E0','FRONT BAL':'FFE8F5E8',LAMINATION:'FFE8F0FB',VDP:'FFFAEAEA',VR:'FFF5F5F5'};
+  var MISS_BG  = {'Job Not Started':'FFFDF0D8',FOIL:'FFFDF5E0',LAMINATION:'FFE8F0FB',PASTING:'FFFDE9D9',PH:'FFEEEBFA',SCREEN:'FFE0F5F5',VDP:'FFFAEAEA','FRONT BAL':'FFE8F5E8','LABLE CUTTING':'FFEBF4FB'};
+
+  var C = {
+    mainTitle:'FF1A1A2E', t1:'FF0F3460', t2:'FF16537E', t3:'FF8B1A1A', t4:'FF1A4D2E',
+    white:'FFFFFFFF', ltBlue:'FFEBF4FB', ltGrn:'FFF0F7F0',
+    grandBlu:'FFC8DFF0', grandRed:'FFF5C0C0', grandGrn:'FFB8DFC0',
+    navy:'FF0F3460', blue:'FF1A5FA8', amber:'FF8A5200', red:'FFA02020', green:'FF1A4D2E'
+  };
+
+  function cs(fg,bg,bold,sz,h,nf){
+    var s = {
+      font:{name:'Arial',color:{rgb:fg||'FF1A1A2E'},bold:!!bold,sz:sz||9},
+      fill:{patternType:'solid',fgColor:{rgb:bg||'FFFFFFFF'}},
+      alignment:{horizontal:h||'left',vertical:'center'},
+      border:{
+        top:{style:'thin',color:{rgb:'FFCCCCCC'}},
+        bottom:{style:'thin',color:{rgb:'FFCCCCCC'}},
+        left:{style:'thin',color:{rgb:'FFCCCCCC'}},
+        right:{style:'thin',color:{rgb:'FFCCCCCC'}}
+      }
+    };
+    if(nf) s.numFmt=nf;
+    return s;
+  }
+
+  function csMed(fg,bg,bold,sz,h,nf){
+    var s=cs(fg,bg,bold,sz,h,nf);
+    var mb={style:'medium',color:{rgb:'FF999999'}};
+    s.border={top:mb,bottom:mb,left:mb,right:mb};
+    return s;
+  }
+
+  // Build empty grid — T2 is now tallest: Fold + Missing + Customer all stacked
+  var grid=[], styleGrid=[];
+  var t2Rows = 2+6+1 + 2 + 2+D.missingByProcess.length+1 + 2 + 2+D.missingCust.length+1;
+  var estimatedRows = 3 + Math.max(
+    2+D.floorJobs.reduce(function(a,f){return a+1+(f.subs||[]).length;},0)+1,
+    t2Rows
+  ) + 3;
+  for(var i=0;i<estimatedRows;i++){
+    var r=[],sr=[];
+    for(var j=0;j<COLS;j++){r.push('');sr.push(null);}
+    grid.push(r); styleGrid.push(sr);
+  }
+
+  function set(r,c,v,style){ grid[r][c]=v; styleGrid[r][c]=style; }
+
+  var NF='#,##0';
+
+  // ROW 0: Main title
+  set(0,0,'AIA JOB TRACK DASHBOARD  |  Jan 2026 \u2013 '+D.lastUpdate+'  |  Total Jobs: '+D.totalJobs,
+    cs(C.white,C.mainTitle,true,14,'center'));
+
+  var B=2; // base row for tables
+
+  // ---- TABLE 1: FLOOR JOBS ----
+  set(B,T1,'FLOOR JOBS \u2014 PENDING BY PROCESS & MONTH  (As of '+D.lastUpdate+')',cs(C.white,C.t1,true,10,'center'));
+  var h1=['Process / Month','Pending Qty','Tot. Cut SH','Job Count','Status'];
+  h1.forEach(function(h,i){set(B+1,T1+i,h,cs(C.white,C.t1,true,9,'center'));});
+
+  var r1=B+2,fp=0,fc=0,fjc=0;
+  D.floorJobs.forEach(function(f){
+    var fg=PROC_FG[f.proc]||'FF1A1A2E', bg=PROC_BG[f.proc]||C.ltBlue;
+    set(r1,T1,f.proc,cs(fg,bg,true,9,'left'));
+    set(r1,T1+1,Math.round(f.pqty||0),cs(fg,bg,true,9,'right',NF));
+    set(r1,T1+2,Math.round(f.cutsh||0),cs(fg,bg,true,9,'right',NF));
+    set(r1,T1+3,f.cnt,cs(fg,bg,true,9,'right',NF));
+    set(r1,T1+4,'In Floor',cs(fg,bg,true,8,'center'));
+    fp+=f.pqty||0; fc+=f.cutsh||0; fjc+=f.cnt;
+    r1++;
+    (f.subs||[]).forEach(function(s){
+      set(r1,T1,'   '+s.mo,cs('FF777777',C.white,false,9,'left'));
+      set(r1,T1+1,Math.round(s.pqty||0),cs('FF777777',C.white,false,9,'right',NF));
+      set(r1,T1+2,Math.round(s.cutsh||0),cs('FF777777',C.white,false,9,'right',NF));
+      set(r1,T1+3,s.cnt,cs('FF777777',C.white,false,9,'right',NF));
+      set(r1,T1+4,'',cs('FF777777',C.white,false,9,'left'));
+      r1++;
+    });
+  });
+  set(r1,T1,'GRAND TOTAL',csMed(C.navy,C.grandBlu,true,9,'left'));
+  set(r1,T1+1,Math.round(fp),csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  set(r1,T1+2,Math.round(fc),csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  set(r1,T1+3,fjc,csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  set(r1,T1+4,'',csMed(C.navy,C.grandBlu,true,9,'left'));
+
+  // ---- TABLE 2: FOLD JOBS ----
+  var foldOrder=['FOLD','OUTSERT FOLDING','Job Not Started','FRONT BAL','VR'];
+  var stMap={};
+  D.statusBreakdown.forEach(function(x){stMap[x[0]]={cnt:x[1],pqty:x[2]||0,cutsh:x[3]||0};});
+
+  set(B,T2,'FOLD & OTHER FLOOR PROCESSES',cs(C.white,C.t2,true,10,'center'));
+  ['Process','Pending Qty','Tot. Cut SH','Job Count'].forEach(function(h,i){set(B+1,T2+i,h,cs(C.white,C.t2,true,9,'center'));});
+
+  var r2=B+2,f2j=0,f2p=0,f2c=0;
+  foldOrder.forEach(function(proc,idx){
+    var d=stMap[proc]; if(!d||!d.cnt) return;
+    var bg=idx%2===0?C.ltBlue:C.white;
+    set(r2,T2,proc,cs('FF16537E',bg,true,9,'left'));
+    set(r2,T2+1,Math.round(d.pqty),cs('FF16537E',bg,false,9,'right',NF));
+    set(r2,T2+2,Math.round(d.cutsh),cs('FF16537E',bg,false,9,'right',NF));
+    set(r2,T2+3,d.cnt,cs('FF16537E',bg,false,9,'right',NF));
+    f2j+=d.cnt; f2p+=d.pqty; f2c+=d.cutsh; r2++;
+  });
+  set(r2,T2,'GRAND TOTAL',csMed(C.navy,C.grandBlu,true,9,'left'));
+  set(r2,T2+1,Math.round(f2p),csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  set(r2,T2+2,Math.round(f2c),csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  set(r2,T2+3,f2j,csMed(C.navy,C.grandBlu,true,9,'right',NF));
+
+  // ---- TABLE 3: MISSING LIST — T2 column madhe Fold khali stack ----
+  var r3=r2+2; // Fold grand total nantara 2 rows gap
+  set(r3,T2,'MISSING LIST \u2014 UPTO '+D.lastUpdate,cs(C.white,C.t3,true,10,'center'));
+  ['Process / Status','Pending Qty','Tot. Cut SH','Job Count','% Share'].forEach(function(h,i){set(r3+1,T2+i,h,cs(C.white,C.t3,true,9,'center'));});
+
+  var r3d=r3+2,m3p=0,m3c=0,m3j=0;
+  var totMJ=D.missingByProcess.reduce(function(a,x){return a+x.jobs;},0);
+  D.missingByProcess.forEach(function(x){
+    var bg=MISS_BG[x.status]||C.ltBlue;
+    var pctV=totMJ?Math.round(x.jobs/totMJ*100)+'%':'0%';
+    set(r3d,T2,x.status,cs('FF8B1A1A',bg,true,9,'left'));
+    set(r3d,T2+1,Math.round(x.pqty),cs('FF8B1A1A',bg,false,9,'right',NF));
+    set(r3d,T2+2,Math.round(x.cutsh),cs('FF8B1A1A',bg,false,9,'right',NF));
+    set(r3d,T2+3,x.jobs,cs('FF8B1A1A',bg,false,9,'right',NF));
+    set(r3d,T2+4,pctV,cs('FF8B1A1A',bg,false,9,'center'));
+    m3p+=x.pqty; m3c+=x.cutsh; m3j+=x.jobs; r3d++;
+  });
+  set(r3d,T2,'GRAND TOTAL',csMed('FF8B1A1A',C.grandRed,true,9,'left'));
+  set(r3d,T2+1,Math.round(m3p),csMed('FF8B1A1A',C.grandRed,true,9,'right',NF));
+  set(r3d,T2+2,Math.round(m3c),csMed('FF8B1A1A',C.grandRed,true,9,'right',NF));
+  set(r3d,T2+3,m3j,csMed('FF8B1A1A',C.grandRed,true,9,'right',NF));
+  set(r3d,T2+4,'100%',csMed('FF8B1A1A',C.grandRed,true,9,'center'));
+
+  // ---- TABLE 4: MISSING CUSTOMERS — T2 column madhe Missing List khali stack ----
+  var r4start = r3d + 2; // Missing List grand total nantara 2 rows gap
+
+  var lemonHdr  = 'FF8B7A00';
+  var lemonBg1  = 'FFFDF6C0';
+  var lemonBg2  = 'FFFFF9E0';
+  var lemonTitle= 'FFB8A000';
+  var lemonGrand= 'FFFFF0A0';
+
+  var custProcs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+  var custHeaders=['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
+
+  set(r4start,T2,'MISSING LIST \u2014 ALL MISSING JOBS BY CUSTOMER \u2014 UPTO '+D.lastUpdate,cs(C.white,lemonTitle,true,10,'center'));
+  custHeaders.forEach(function(h,i){set(r4start+1,T2+i,h,cs(C.white,lemonTitle,true,9,'center'));});
+
+  var r4=r4start+2,t4p=0,t4c=0,t4j=0,t4ns=0;
+  var procGrandTotals={}; custProcs.forEach(function(p){procGrandTotals[p]=0;});
+  D.missingCust.forEach(function(cust,i){
+    var bg=i%2===0?lemonBg1:lemonBg2;
+    set(r4,T2,i+1,cs('FF555500',bg,false,9,'center'));
+    set(r4,T2+1,cust.name,cs('FF333300',bg,false,8,'left'));
+    set(r4,T2+2,Math.round(cust.pqty),cs('FF555500',bg,false,9,'right',NF));
+    set(r4,T2+3,Math.round(cust.cutsh),cs('FF555500',bg,false,9,'right',NF));
+    set(r4,T2+4,cust.jobs,cs('FF0F3460',bg,true,9,'right',NF));
+    set(r4,T2+5,cust.nsJobs||0,cs('FF8A5200',bg,false,9,'right',NF));
+    custProcs.forEach(function(p,pi){
+      var v=(cust.proc&&cust.proc[p])||0;
+      set(r4,T2+6+pi,v,cs('FF555500',bg,false,9,'right',NF));
+      procGrandTotals[p]+=v;
+    });
+    t4p+=cust.pqty; t4c+=cust.cutsh; t4j+=cust.jobs; t4ns+=(cust.nsJobs||0); r4++;
+  });
+  set(r4,T2,'',csMed(lemonHdr,lemonGrand,true,9,'left'));
+  set(r4,T2+1,'GRAND TOTAL',csMed(lemonHdr,lemonGrand,true,9,'left'));
+  set(r4,T2+2,Math.round(t4p),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,T2+3,Math.round(t4c),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,T2+4,t4j,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,T2+5,t4ns,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  custProcs.forEach(function(p,pi){
+    set(r4,T2+6+pi,procGrandTotals[p]||0,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  });
+
+  // ---- BUILD WORKSHEET ----
+  var ws = XLSX.utils.aoa_to_sheet(grid);
+
+  // Apply styles cell by cell
+  for(var ri=0;ri<styleGrid.length;ri++){
+    for(var ci=0;ci<styleGrid[ri].length;ci++){
+      if(styleGrid[ri][ci]){
+        var addr=XLSX.utils.encode_cell({r:ri,c:ci});
+        if(!ws[addr]) ws[addr]={t:'z',v:''};
+        ws[addr].s=styleGrid[ri][ci];
+      }
+    }
+  }
+
+  // Merges
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:COLS-1}},              // main title
+    {s:{r:B,c:T1},e:{r:B,c:T1+4}},                // T1 title — Floor Jobs
+    {s:{r:B,c:T2},e:{r:B,c:T2+4}},                // T2 title — Fold
+    {s:{r:r3,c:T2},e:{r:r3,c:T2+4}},              // Missing List title
+    {s:{r:r4start,c:T2},e:{r:r4start,c:T2+13}}    // Customer table title (14 cols)
+  ];
+
+  ws['!cols']=[
+    {wch:19},{wch:13},{wch:12},{wch:10},{wch:9},        // T1: Floor Jobs (5 cols)
+    {wch:1.5},                                           // gap
+    {wch:4},{wch:32},{wch:13},{wch:12},{wch:10},{wch:10}, // T2: #/Process, Name, PendQty, CutSH, TotalJobs/JobCnt, NS/%
+    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:8},{wch:10} // process cols: PASTING,PH,SCREEN,FOIL,LAM,VDP,VR,FBAL
+  ];
+
+  // Row heights
+  ws['!rows']=[];
+  ws['!rows'][0]={hpt:30};
+  ws['!rows'][1]={hpt:5};
+  ws['!rows'][B]={hpt:20};
+  ws['!rows'][B+1]={hpt:20};
+
+  XLSX.utils.book_append_sheet(wb,ws,'AIA Report');
+
+  var today=new Date();
+  var fname='AIA_Report_'+today.getDate()+'_'+(today.getMonth()+1)+'_'+today.getFullYear()+'.xlsx';
+  XLSX.writeFile(wb,fname);
+}
+
+
+
+// Init
+window.onload=function(){
+  document.getElementById('date-display').textContent='Upload AIA Track Record to load dashboard';
+  // Register Service Worker for PWA
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(function(reg){
+      console.log('AIA PWA: Service Worker registered', reg.scope);
+    }).catch(function(err){
+      console.log('AIA PWA: SW registration failed', err);
+    });
+  }
+};
+</script>
+</body>
+</html>

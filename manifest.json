@@ -1,0 +1,20 @@
+{
+  "name": "AIA Job Track Dashboard",
+  "short_name": "AIA Track",
+  "description": "AIA Job Track Dashboard – Floor, Missing List & Customer Reports",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en"
+}

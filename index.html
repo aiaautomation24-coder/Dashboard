@@ -111,6 +111,20 @@ th.num{text-align:right}
 .date-range-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px}
 .date-range-bar b{color:var(--accent)}
 
+/* DATE FILTER */
+.date-filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:11px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.date-filter-bar label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.date-filter-bar input[type=date]{padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text);background:var(--surface);outline:none;cursor:pointer}
+.date-filter-bar input[type=date]:focus{border-color:var(--accent)}
+.date-filter-bar .sep{color:var(--text2);font-weight:600}
+.dfbtn{border:none;border-radius:var(--radius);padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s}
+.dfbtn-apply{background:var(--accent);color:#fff}.dfbtn-apply:hover{background:#144d8a}
+.dfbtn-reset{background:var(--surface2);color:var(--text2)}.dfbtn-reset:hover{background:var(--border)}
+.date-filter-bar .filter-info{font-size:11px;color:var(--text2);margin-left:4px;font-style:italic}
+.quick-btns{display:flex;gap:5px;flex-wrap:wrap}
+.qbtn{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:var(--radius);padding:4px 9px;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s}
+.qbtn:hover,.qbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
 /* CHARTS */
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
@@ -125,11 +139,79 @@ th.num{text-align:right}
 .empty p{font-size:13px}
 
 
+
+/* ---- LOADING OVERLAY ---- */
+#loading-overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.72);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loading-overlay.show{display:flex}
+.spinner{width:44px;height:44px;border:4px solid #ffffff44;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#fff;font-size:13px;font-weight:600;letter-spacing:.03em}
+.progress-bar-wrap{width:220px;height:6px;background:#ffffff33;border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;background:#4fc3f7;border-radius:3px;transition:width .3s}
+
+/* ---- DRILL-DOWN MODAL ---- */
+#drill-modal{display:none;position:fixed;inset:0;background:rgba(26,26,46,.7);z-index:8000;align-items:flex-start;justify-content:center;padding-top:60px;overflow-y:auto}
+#drill-modal.show{display:flex}
+.drill-box{background:var(--surface);border-radius:var(--radius-lg);width:92%;max-width:900px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35);animation:slideIn .2s ease}
+@keyframes slideIn{from{transform:translateY(-18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.drill-head{background:#1a1a2e;color:#fff;padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--radius-lg) var(--radius-lg) 0 0;position:sticky;top:0;z-index:1}
+.drill-head h3{font-size:13px;font-weight:700}
+.drill-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.drill-body{padding:16px}
+.drill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.drill-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.drill-card .dc-label{font-size:9px;color:var(--text2);text-transform:uppercase;font-weight:700;letter-spacing:.05em;margin-bottom:4px}
+.drill-card .dc-val{font-size:16px;font-weight:700;color:var(--text)}
+.drill-card .dc-sub{font-size:9px;color:var(--text2);margin-top:2px}
+.drill-jobs-table th{font-size:10px} .drill-jobs-table td{font-size:11px}
+tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!important}
+
+/* ---- AGING REPORT ---- */
+.age-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:700px){.age-grid{grid-template-columns:1fr 1fr}}
+.age-card{border-radius:var(--radius-lg);padding:12px 14px;text-align:center;border:1px solid transparent}
+.age-card .ac-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.age-card .ac-val{font-size:26px;font-weight:800;line-height:1}
+.age-card .ac-sub{font-size:10px;margin-top:4px;opacity:.8}
+.age-0{background:#e8f5e8;border-color:#b5d5b5;color:#2a6e2a}
+.age-1{background:#fff8e1;border-color:#ffe082;color:#8a5200}
+.age-2{background:#fff3e0;border-color:#ffb74d;color:#b5541a}
+.age-3{background:#faeaea;border-color:#ef9a9a;color:#a02020}
+
+/* ---- CUSTOMER TIMELINE ---- */
+.timeline-cust-select{padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.timeline-cust-select select{padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text);background:var(--surface);outline:none;min-width:200px}
+.timeline-wrap{padding:14px;overflow-x:auto}
+.timeline-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.timeline-bar-row .tl-label{width:110px;text-align:right;color:var(--text2);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.tl-bar-bg{flex:1;height:18px;background:var(--surface2);border-radius:3px;position:relative;min-width:200px}
+.tl-bar-fill{height:100%;border-radius:3px;position:absolute;top:0;display:flex;align-items:center;padding-left:6px;font-size:9px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;min-width:4px}
+.tl-count{width:32px;text-align:right;font-weight:700;color:var(--text);font-size:10px;flex-shrink:0}
+
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Processing data...</div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+</div>
+
+<!-- JOB DRILL-DOWN MODAL -->
+<div id="drill-modal" onclick="closeDrillModal(event)">
+  <div class="drill-box" id="drill-box">
+    <div class="drill-head">
+      <h3 id="drill-title">Job Details</h3>
+      <button class="drill-close" onclick="document.getElementById('drill-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="drill-body" id="drill-body"></div>
+  </div>
+</div>
+
 <div class="header">
   <div class="header-left">
     <h1>AIA Job Track Dashboard</h1>
@@ -146,6 +228,26 @@ th.num{text-align:right}
     <span id="aia-badge" class="file-badge fb-empty">Not loaded</span>
 
     <!-- Printing Schedule Upload -->
+    <label class="hbtn" style="background:#16537e;color:#fff;cursor:pointer" for="printFile" title="Upload Printing Schedule">
+      🖨️ Printing
+    </label>
+    <input type="file" id="printFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'printing')">
+    <span id="print-badge" class="file-badge fb-empty">Not loaded</span>
+
+    <!-- Punching Schedule Upload -->
+    <label class="hbtn" style="background:#5c3fa0;color:#fff;cursor:pointer" for="punchFile" title="Upload Punching Schedule">
+      👊 Punching
+    </label>
+    <input type="file" id="punchFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'punching')">
+    <span id="punch-badge" class="file-badge fb-empty">Not loaded</span>
+
+    <!-- Pasting Schedule Upload -->
+    <label class="hbtn" style="background:#b5541a;color:#fff;cursor:pointer" for="pasteFile" title="Upload Pasting Schedule">
+      📋 Pasting
+    </label>
+    <input type="file" id="pasteFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'pasting')">
+    <span id="paste-badge" class="file-badge fb-empty">Not loaded</span>
+
     <button class="hbtn hbtn-green" onclick="downloadExcel()">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       Download Report
@@ -159,19 +261,42 @@ th.num{text-align:right}
   <div class="tab" onclick="showTab('floor',this)">Floor Jobs</div>
   <div class="tab" onclick="showTab('missing',this)">Missing List</div>
   <div class="tab" onclick="showTab('customers',this)">Customers</div>
+  <div class="tab" onclick="showTab('aging',this)">⏳ Aging Report</div>
+  <div class="tab" onclick="showTab('timeline',this)">📈 Job Timeline</div>
 </div>
 
 <div class="main">
 
 <!-- OVERVIEW -->
 <div id="tab-overview" class="panel active">
+  <!-- DATE FILTER BAR -->
+  <div class="date-filter-bar" id="main-date-filter">
+    <label>📅 Revised Commitment Date Filter</label>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text2)">From:</span>
+      <input type="date" id="filter-from" onchange="onDateChange()">
+      <span class="sep">→</span>
+      <span style="font-size:11px;color:var(--text2)">To:</span>
+      <input type="date" id="filter-to" onchange="onDateChange()">
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="setQuick('thismonth',this)">This Month</button>
+      <button class="qbtn" onclick="setQuick('lastmonth',this)">Last Month</button>
+      <button class="qbtn" onclick="setQuick('last3',this)">Last 3 Months</button>
+      <button class="qbtn" onclick="setQuick('thisyear',this)">This Year</button>
+      <button class="qbtn active" id="qbtn-jan2026" onclick="setQuick('jan2026',this)">Full Range</button>
+    </div>
+    <button class="dfbtn dfbtn-apply" onclick="applyDateFilter()">Apply Filter</button>
+    <button class="dfbtn dfbtn-reset" onclick="resetDateFilter()">Reset</button>
+    <span class="filter-info" id="filter-info-text"></span>
+  </div>
   <div class="date-range-bar" id="date-bar">
-    <span>Period: <b id="period-label">Jan 2026 – today</b></span>
+    <span>Period: <b id="period-label">Loading...</b></span>
     <span>Last Updated: <b id="last-update">—</b></span>
     <span>Total Records: <b id="total-records">—</b></span>
   </div>
   <div class="cards-wrap"><div class="cards">
-    <div class="card c-blue"><div class="cl">Total Jobs</div><div class="cv" id="ov-total">—</div><div class="cs" id="ov-range">Jan–today</div></div>
+    <div class="card c-blue"><div class="cl">Total Jobs</div><div class="cv" id="ov-total">—</div><div class="cs" id="ov-range">—</div></div>
     <div class="card c-green"><div class="cl">Dispatched (DD)</div><div class="cv" id="ov-dd">—</div><div class="cs" id="ov-dd-pct">—</div></div>
     <div class="card c-amber"><div class="cl">Not Started</div><div class="cv" id="ov-ns">—</div><div class="cs" id="ov-ns-pct">—</div></div>
     <div class="card c-red"><div class="cl">Cancelled</div><div class="cv" id="ov-cancel">—</div><div class="cs" id="ov-cancel-pct">—</div></div>
@@ -189,7 +314,7 @@ th.num{text-align:right}
   <!-- OVERVIEW CHARTS -->
   <div class="chart-grid" style="margin-bottom:14px">
     <div class="chart-box" style="grid-column:1/-1">
-      <h3>📅 Monthly Job Count — Jan 2026 to Today</h3>
+      <h3 id="chart-monthly-title">📅 Monthly Job Count</h3>
       <canvas id="chart-monthly"></canvas>
     </div>
   </div>
@@ -303,6 +428,75 @@ th.num{text-align:right}
   </div>
 </div>
 
+
+<!-- AGING REPORT -->
+<div id="tab-aging" class="panel">
+  <div class="age-grid">
+    <div class="age-card age-0"><div class="ac-label">🟢 0–7 Days</div><div class="ac-val" id="age-0-7">—</div><div class="ac-sub">Fresh / On track</div></div>
+    <div class="age-card age-1"><div class="ac-label">🟡 8–15 Days</div><div class="ac-val" id="age-8-15">—</div><div class="ac-sub">Watch closely</div></div>
+    <div class="age-card age-2"><div class="ac-label">🟠 16–30 Days</div><div class="ac-val" id="age-16-30">—</div><div class="ac-sub">Overdue</div></div>
+    <div class="age-card age-3"><div class="ac-label">🔴 30+ Days</div><div class="ac-val" id="age-30plus">—</div><div class="ac-sub">Critical</div></div>
+  </div>
+  <!-- Schedule legend -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 14px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:11px">
+    <span style="font-weight:700;color:var(--text2)">📅 SCHEDULE STATUS:</span>
+    <span style="background:#d0e8f5;color:#16537e;padding:2px 8px;border-radius:4px;font-weight:600">🖨️ Print Date — Header वर upload करा</span>
+    <span style="background:#e8e0f5;color:#5c3fa0;padding:2px 8px;border-radius:4px;font-weight:600">👊 Punch Date — Header वर upload करा</span>
+    <span style="background:#fde9d9;color:#b5541a;padding:2px 8px;border-radius:4px;font-weight:600">📋 Paste Date — Header वर upload करा</span>
+    <span style="background:#faeaea;color:#a02020;padding:2px 8px;border-radius:4px;font-weight:600">⚠️ = Date गेली आहे (Overdue)</span>
+  </div>
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>⏳ Aging Distribution — Pending Jobs by Age Bucket</h3>
+      <canvas id="chart-aging" style="max-height:260px"></canvas>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><h2>Aging Detail — All Pending Jobs</h2><span id="aging-info">—</span></div>
+    <div class="search-box"><input type="text" id="aging-search" placeholder="Search customer or JCNO..." oninput="filterAgingTable()"></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>
+        <th class="num">Pending Qty</th><th class="num">Cut SH</th>
+        <th class="num">Rev. Commit Date</th><th class="num">Days Pending</th>
+        <th class="num" style="background:#d0e8f5;color:#16537e">🖨️ Print Date</th>
+        <th class="num" style="background:#e8e0f5;color:#5c3fa0">👊 Punch Date</th>
+        <th class="num" style="background:#fde9d9;color:#b5541a">📋 Paste Date</th>
+        <th>Bucket</th>
+      </tr></thead>
+      <tbody id="aging-table"><tr><td colspan="13" style="text-align:center;color:var(--text2);padding:20px">Upload data to view aging report</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- CUSTOMER JOB TIMELINE -->
+<div id="tab-timeline" class="panel">
+  <div class="sec">
+    <div class="sec-head"><h2>📈 Customer-wise Job History Timeline</h2><span id="timeline-info">—</span></div>
+    <div class="timeline-cust-select">
+      <label style="font-size:11px;font-weight:700;color:var(--text2)">Select Customer:</label>
+      <select id="timeline-cust-select" onchange="renderTimeline()">
+        <option value="">-- Select a customer --</option>
+      </select>
+      <label style="font-size:11px;font-weight:700;color:var(--text2);margin-left:12px">Group by:</label>
+      <select id="timeline-group" onchange="renderTimeline()" style="min-width:120px">
+        <option value="month">Month</option>
+        <option value="status">Status</option>
+        <option value="process">Process</option>
+      </select>
+    </div>
+    <div class="timeline-wrap" id="timeline-wrap">
+      <div class="empty"><p>Select a customer to view their job timeline</p></div>
+    </div>
+  </div>
+  <div class="sec" style="margin-top:14px">
+    <div class="sec-head"><h2>All Customers — Job Count Timeline (Monthly)</h2></div>
+    <div class="timeline-wrap" id="all-customers-timeline">
+      <div class="empty"><p>Upload data to view timeline</p></div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -318,12 +512,100 @@ var D = {
   missingCust: [],
   missingByProcess: [],
   floorJobs: [],
-  foldJobs: []
+  foldJobs: [],
+  agingRows: [],
+  // Schedule maps: JCNO -> date
+  schedPrinting: {},
+  schedPunching: {},
+  schedPasting: {},
+  // Raw data storage for re-filtering
+  _rawRows: [],
+  _keys: {},
+  _filterFrom: null,
+  _filterTo: null
 };
 
 function fmt(n){ if(!n && n!==0) return '—'; return Math.round(n).toLocaleString('en-IN'); }
 function fmtDate(d){ if(!d) return '—'; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
 function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '0%'; }
+
+// ===================== DATE FILTER =====================
+function toInputDate(d){ if(!d) return ''; var mm=('0'+(d.getMonth()+1)).slice(-2), dd2=('0'+d.getDate()).slice(-2); return d.getFullYear()+'-'+mm+'-'+dd2; }
+function fromInputDate(s){ if(!s) return null; var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+
+function setQuick(type, btn){
+  document.querySelectorAll('.qbtn').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  var now = new Date();
+  var from, to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  if(type==='thismonth'){
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else if(type==='lastmonth'){
+    from = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    to   = new Date(now.getFullYear(), now.getMonth(), 0, 23,59,59);
+  } else if(type==='last3'){
+    from = new Date(now.getFullYear(), now.getMonth()-2, 1);
+  } else if(type==='thisyear'){
+    from = new Date(now.getFullYear(), 0, 1);
+  } else { // full range
+    var allValid2 = D._rawRows.map(function(r){ return new Date(r[D._keys.revCommitKey]); }).filter(function(d){ return !isNaN(d); });
+    from = allValid2.length ? new Date(Math.min.apply(null, allValid2)) : new Date('2026-01-01');
+    to   = allValid2.length ? new Date(Math.max.apply(null, allValid2)) : new Date();
+    to.setHours(23,59,59,999);
+  }
+  document.getElementById('filter-from').value = toInputDate(from);
+  document.getElementById('filter-to').value   = toInputDate(to);
+}
+
+function onDateChange(){
+  document.querySelectorAll('.qbtn').forEach(function(b){b.classList.remove('active');});
+}
+
+function applyDateFilter(){
+  if(!D.loaded){ alert('Pehle file upload karo!'); return; }
+  var from = fromInputDate(document.getElementById('filter-from').value);
+  var to   = fromInputDate(document.getElementById('filter-to').value);
+  if(!from || !to){ alert('Please select both From and To dates.'); return; }
+  if(from > to){ alert('"From" date must be before "To" date.'); return; }
+  to.setHours(23,59,59,999);
+  D._filterFrom = from;
+  D._filterTo   = to;
+  document.getElementById('filter-info-text').textContent = 'Showing: '+fmtDate(from)+' → '+fmtDate(to);
+  reProcessAndRender();
+}
+
+function resetDateFilter(){
+  // Reset to full data range based on Revised Commitment Date
+  var allValid = D._rawRows.map(function(r){ return new Date(r[D._keys.revCommitKey]); }).filter(function(d){ return !isNaN(d); });
+  var minD = allValid.length ? new Date(Math.min.apply(null, allValid)) : new Date('2026-01-01');
+  var maxD = allValid.length ? new Date(Math.max.apply(null, allValid)) : new Date();
+  D._filterFrom = new Date(minD); D._filterFrom.setHours(0,0,0,0);
+  D._filterTo   = new Date(maxD); D._filterTo.setHours(23,59,59,999);
+  document.getElementById('filter-from').value = toInputDate(minD);
+  document.getElementById('filter-to').value   = toInputDate(maxD);
+  document.getElementById('filter-info-text').textContent = '';
+  document.querySelectorAll('.qbtn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('qbtn-jan2026').classList.add('active');
+  if(D.loaded) reProcessAndRender();
+}
+
+function reProcessAndRender(){
+  if(!D._rawRows.length) return;
+  var k = D._keys;
+  var from = D._filterFrom || new Date('2026-01-01');
+  var to   = D._filterTo || new Date();
+  to.setHours(23,59,59,999);
+
+  // Filter by Revised Commitment Date
+  var allRows = D._rawRows.filter(function(r){
+    var d = new Date(r[k.revCommitKey]);
+    return !isNaN(d) && d >= from && d <= to;
+  });
+
+  if(!allRows.length){ alert('Selected date range mein koi Revised Commitment Date data nahi mila!'); return; }
+  computeFromRows(allRows, k, from, to);
+  renderAll();
+}
 
 // ===================== TABS =====================
 function showTab(id, el){
@@ -333,9 +615,144 @@ function showTab(id, el){
   if(el) el.classList.add('active');
 }
 
+// ---- LOADING SPINNER ----
+function showLoading(msg){
+  var o=document.getElementById('loading-overlay');
+  o.classList.add('show');
+  document.getElementById('loading-text').textContent=msg||'Processing...';
+  document.getElementById('progress-bar').style.width='0%';
+}
+function setProgress(pct){ document.getElementById('progress-bar').style.width=pct+'%'; }
+function hideLoading(){ document.getElementById('loading-overlay').classList.remove('show'); }
+
+// ---- DEBOUNCE ----
+function debounce(fn,ms){ var t; return function(){ clearTimeout(t); t=setTimeout(fn,ms); }; }
+var _filterCustDebounced = debounce(function(){
+  var q=document.getElementById('cust-search').value.toLowerCase();
+  renderCustTable(D.customers.filter(function(r){return r.name.toLowerCase().includes(q);}));
+},200);
+var _filterMissDebounced = debounce(function(){
+  var q=document.getElementById('miss-search').value.toLowerCase();
+  renderMissingCustTable(D.missingCust.filter(function(r){return r.name.toLowerCase().includes(q);}));
+},200);
+var _filterAgingDebounced = debounce(function(){
+  var q=document.getElementById('aging-search').value.toLowerCase();
+  renderAgingTable(D.agingRows.filter(function(r){
+    return r.jcno.toString().toLowerCase().includes(q)||r.cust.toLowerCase().includes(q);
+  }));
+},200);
+
+// ===================== LOAD SCHEDULE FILES (Printing / Punching / Pasting) =====================
+function loadScheduleFile(input, type){
+  var file = input.files[0]; if(!file) return;
+  var badgeId = type==='printing'?'print-badge': type==='punching'?'punch-badge':'paste-badge';
+  document.getElementById(badgeId).textContent = 'Loading...';
+  document.getElementById(badgeId).className = 'file-badge fb-empty';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true,bookVBA:false});
+      var map = {};
+      // Read ALL sheets and merge
+      wb.SheetNames.forEach(function(sname){
+        var ws = wb.Sheets[sname];
+        if(!ws) return;
+        var raw = XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+        var sheetMap = parseScheduleSheet(raw);
+        Object.assign(map, sheetMap);
+      });
+      if(type==='printing')      D.schedPrinting  = map;
+      else if(type==='punching') D.schedPunching  = map;
+      else                       D.schedPasting   = map;
+      var count = Object.keys(map).length;
+      document.getElementById(badgeId).textContent = '✓ '+count+' jobs';
+      document.getElementById(badgeId).className = 'file-badge fb-loaded';
+      if(D.loaded) renderAgingTab();
+    }catch(err){
+      document.getElementById(badgeId).textContent = '✗ Error';
+      console.error('Schedule load error:', err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Parse schedule sheet → returns { JCNO: "DD/MM/YYYY" }
+// Handles all 3 formats: Printing (Date obj in any cell, JCNO col 0),
+//   Punching/Pasting (date string in col 0, JCNO in col 1)
+function parseScheduleSheet(rows){
+  var map = {};
+  var currentDate = null;
+
+  var MONTHS = {JANUARY:0,FEBRUARY:1,MARCH:2,APRIL:3,MAY:4,JUNE:5,
+                JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11};
+
+  function tryDate(v){
+    if(v === null || v === undefined || v === '') return null;
+    // JS Date object (Printing — cellDates:true)
+    if(v instanceof Date && !isNaN(v.getTime()))
+      return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+    if(typeof v !== 'string') return null;
+    var s = v.trim();
+    if(!s) return null;
+    // "WEDNESDAY — 01 APRIL 2026" or "WEDNESDAY, 01 APRIL 2026"
+    var m1 = s.match(/(\d{1,2})\s+([A-Z]+)\s+(\d{4})/i);
+    if(m1){
+      var mo = MONTHS[m1[2].toUpperCase()];
+      if(mo !== undefined){ var d=new Date(+m1[3],mo,+m1[1]); if(!isNaN(d.getTime())) return d; }
+    }
+    // DD/MM/YYYY
+    var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m2){ var d=new Date(+m2[3],+m2[2]-1,+m2[1]); if(!isNaN(d.getTime())) return d; }
+    // ISO
+    var m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m3){ var d=new Date(+m3[1],+m3[2]-1,+m3[3]); if(!isNaN(d.getTime())) return d; }
+    return null;
+  }
+
+  function isJCNO(v){
+    if(!v) return false;
+    return /^[A-Z0-9]{2,}\/[0-9]+$/i.test(String(v).trim());
+  }
+
+  function fmtD(d){
+    return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+  }
+
+  for(var r = 0; r < rows.length; r++){
+    var row = rows[r];
+    if(!row || !row.length) continue;
+
+    var col0 = row[0];
+    var col1 = (row.length > 1) ? row[1] : null;
+
+    // JCNO col0 → Printing job row
+    if(isJCNO(col0) && currentDate){
+      var jcno = String(col0).trim();
+      if(!map[jcno]) map[jcno] = fmtD(currentDate);
+      continue;
+    }
+
+    // JCNO col1 → Punching/Pasting job row
+    if(isJCNO(col1) && currentDate){
+      var jcno = String(col1).trim();
+      if(!map[jcno]) map[jcno] = fmtD(currentDate);
+      continue;
+    }
+
+    // Scan all cells for a date (works for both string dates and Date objects)
+    for(var c = 0; c < row.length; c++){
+      var d = tryDate(row[c]);
+      if(d){ currentDate = d; break; }
+    }
+  }
+  return map;
+}
+
 // ===================== LOAD AIA TRACK RECORD =====================
 function loadTrackRecord(input){
   var file = input.files[0]; if(!file) return;
+  showLoading('Reading ' + file.name + '...');
+  setProgress(10);
   document.getElementById('file-status').textContent = 'Reading '+file.name+'...';
   var reader = new FileReader();
   reader.onload = function(e){
@@ -383,21 +800,63 @@ function processTrackRecord(data){
   var cutKey  = keys.find(function(k){return k.includes('Cut')}) || 'Tot. Cut\n   SH';
   var nextKey = 'NextProcess';
   var jcnoKey = keys.find(function(k){return k.toUpperCase().includes('JCNO')||k.toUpperCase().includes('JC NO')||k.toUpperCase().includes('JC_NO');}) || 'JCNO';
+  var jobNameKey = keys.find(function(k){
+    var kl = k.toLowerCase().replace(/\s+/g,'');
+    return kl.includes('jobname') || kl.includes('job_name') || kl.includes('jobdescription') ||
+           kl.includes('jobdesc') || kl.includes('description') || kl.includes('jobtitle') ||
+           (k.toLowerCase().includes('job') && k.toLowerCase().includes('name'));
+  }) || keys.find(function(k){ return k.toLowerCase().includes('name') && !k.toLowerCase().includes('customer'); }) || '';
+  var revCommitKey = keys.find(function(k){
+    return k.toLowerCase().replace(/\s+/g,'').includes('revisedcommit') ||
+           k.toLowerCase().replace(/\s+/g,'').includes('revisedcommitement');
+  }) || 'Revised Commitement date';
 
-  // Filter Jan 2026 to latest date in file
-  var allRows = data.map(function(r){
-    var d = new Date(r[dateKey]); return {r:r, d:d};
-  }).filter(function(x){ return x.d >= new Date('2026-01-01') && !isNaN(x.d); });
+  // Store raw data + key mapping
+  D._rawRows = data;
+  D._keys = { dateKey:dateKey, statusKey:statusKey, custKey:custKey, pendKey:pendKey, cutKey:cutKey, nextKey:nextKey, jcnoKey:jcnoKey, jobNameKey:jobNameKey, revCommitKey:revCommitKey };
 
-  if(!allRows.length){ alert('No data found from Jan 2026 onwards'); return; }
+  // Find min & max Revised Commitment Date from file
+  var allValid = data.map(function(r){ return new Date(r[revCommitKey]); }).filter(function(d){ return !isNaN(d); });
+  var maxD = allValid.length ? new Date(Math.max.apply(null, allValid)) : new Date();
+  var minD = allValid.length ? new Date(Math.min.apply(null, allValid)) : new Date('2026-01-01');
 
-  // Find date range
-  var maxD = new Date(Math.max.apply(null, allRows.map(function(x){return x.d;})));
-  var todayD = new Date();
-  D.endDate = maxD; D.startDate = new Date('2026-01-01');
-  D.lastUpdate = fmtDate(todayD);
+  // Set initial filter — minD to maxD (based on Revised Commitment Date)
+  D._filterFrom = new Date(minD); D._filterFrom.setHours(0,0,0,0);
+  D._filterTo   = new Date(maxD); D._filterTo.setHours(23,59,59,999);
 
-  var rows = allRows.map(function(x){return x.r;});
+  // Set date inputs
+  document.getElementById('filter-from').value = toInputDate(minD);
+  document.getElementById('filter-to').value   = toInputDate(maxD);
+
+  // Filter & compute — by Revised Commitment Date
+  var allRows = data.filter(function(r){
+    var d = new Date(r[revCommitKey]);
+    return !isNaN(d) && d >= D._filterFrom && d <= D._filterTo;
+  });
+
+  if(!allRows.length){ alert('No data found in Revised Commitment Date range'); return; }
+  setProgress(60);
+  document.getElementById('loading-text').textContent = 'Computing metrics...';
+  setTimeout(function(){
+    computeFromRows(allRows, D._keys, D._filterFrom, D._filterTo);
+    setProgress(90);
+    D.loaded = true;
+    document.getElementById('loading-text').textContent = 'Rendering dashboard...';
+    setTimeout(function(){
+      renderAll();
+      hideLoading();
+      document.getElementById('aia-badge').className='file-badge fb-loaded';
+      document.getElementById('aia-badge').textContent='Loaded';
+    }, 80);
+  }, 50);
+}
+
+function computeFromRows(rows, k, fromD, toD){
+  var dateKey=k.dateKey, statusKey=k.statusKey, custKey=k.custKey, pendKey=k.pendKey, cutKey=k.cutKey, jcnoKey=k.jcnoKey, revCommitKey=k.revCommitKey;
+
+  D.endDate = toD; D.startDate = fromD;
+  D.lastUpdate = fmtDate(new Date());
+
   // Unique JCNO count helper
   function uniqJCNO(arr){ var s={}; arr.forEach(function(r){s[r[jcnoKey]]=1;}); return Object.keys(s).length; }
   D.totalJobs = uniqJCNO(rows);
@@ -408,10 +867,10 @@ function processTrackRecord(data){
   D.screen   = uniqJCNO(rows.filter(function(r){return r[statusKey]==='SCREEN';}));
   D.pasting  = uniqJCNO(rows.filter(function(r){return r[statusKey]==='PASTING';}));
 
-  // Monthly breakdown — all months from Jan to endDate
+  // Monthly breakdown — by Revised Commitment Date
   var monthMap = {};
   rows.forEach(function(r){
-    var d = new Date(r[dateKey]);
+    var d = new Date(r[revCommitKey]);
     var key = d.getFullYear()+'-'+(d.getMonth()+1);
     var lbl = ['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]+' '+d.getFullYear();
     if(!monthMap[key]) monthMap[key]={month:lbl,jcnos:{},dd:{},ns:{},cancel:{},ph:{},screen:{},pasting:{},sort:d.getFullYear()*100+d.getMonth()};
@@ -432,7 +891,7 @@ function processTrackRecord(data){
       pasting:Object.keys(m.pasting).length};
   });
 
-  // Status breakdown — unique JCNO per status with qty and cut
+  // Status breakdown
   var stMap={};
   rows.forEach(function(r){
     var s=r[statusKey]||'Unknown'; var jc=r[jcnoKey];
@@ -447,7 +906,7 @@ function processTrackRecord(data){
     return [e[0], Object.keys(e[1].jcnos).length, e[1].pqty, e[1].cutsh];
   }).sort(function(a,b){return b[1]-a[1];});
 
-  // Customers — unique JCNO
+  // Customers
   var custMap={};
   rows.forEach(function(r){
     var c=String(r[custKey]).trim(); var jc=r[jcnoKey];
@@ -463,29 +922,40 @@ function processTrackRecord(data){
             ns:Object.keys(c.ns).length, cancel:Object.keys(c.cancel).length};
   }).sort(function(a,b){return b.total-a.total;});
 
-  // Missing list by customer — unique JCNO
-  var today = new Date(); today.setHours(23,59,59,999);
-  var jan2026 = new Date('2026-01-01');
+  // ---- AGING REPORT ----
+  var today3 = new Date(); today3.setHours(23,59,59,999);
+  var pendingStatuses = ['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR','Job Not Started','LABLE CUTTING'];
+  D.agingRows = D._rawRows.filter(function(r){
+    if(pendingStatuses.indexOf(r[statusKey]) < 0) return false;
+    var rd = new Date(r[revCommitKey]);
+    return !isNaN(rd) && rd >= fromD && rd <= toD;
+  }).map(function(r){
+    var rd = new Date(r[revCommitKey]);
+    var days = Math.floor((today3 - rd) / 86400000);
+    var bucket = days <= 7 ? '0-7' : days <= 15 ? '8-15' : days <= 30 ? '16-30' : '30+';
+    return {
+      jcno: r[k.jcnoKey],
+      jobName: k.jobNameKey ? String(r[k.jobNameKey]||'').trim() : '',
+      cust: String(r[k.custKey]).trim(),
+      status: r[statusKey],
+      pqty: parseFloat(r[k.pendKey])||0,
+      cutsh: parseFloat(r[k.cutKey])||0,
+      revDate: rd,
+      days: days,
+      bucket: bucket
+    };
+  }).sort(function(a,b){ return b.days - a.days; });
 
-  // Revised Commitment Date column key
-  var revCommitKey = keys.find(function(k){
-    return k.toLowerCase().replace(/\s+/g,'').includes('revisedcommit') ||
-           k.toLowerCase().replace(/\s+/g,'').includes('revisedcommitement');
-  }) || 'Revised Commitement date';
-
+  // Missing list — filter by Revised Commitment Date using same fromD/toD as main filter
   var allowedMiss = ['LABLE CUTTING','FOIL','FRONT BAL','Job Not Started','LAMINATION','PASTING','PH','SCREEN','VDP','VR'];
-
-  // Filter: allowed status + revised commit date Jan 2026 to today
-  var missRows = rows.filter(function(r){
+  var missRows = D._rawRows.filter(function(r){
     if(allowedMiss.indexOf(r[statusKey]) < 0) return false;
     var rd = new Date(r[revCommitKey]);
     if(isNaN(rd)) return false;
-    return rd >= jan2026 && rd <= today;
+    return rd >= fromD && rd <= toD;
   });
 
-  // All missing process statuses (excluding Job Not Started for separate tracking)
   var missProcesses = ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL','LABLE CUTTING'];
-
   var missMap={};
   missRows.forEach(function(r){
     var c=String(r[custKey]).trim(); var jc=r[jcnoKey];
@@ -531,23 +1001,20 @@ function processTrackRecord(data){
     return {status:s, jobs:Object.keys(mpMap[s].jcnos).length, pqty:mpMap[s].pqty, cutsh:mpMap[s].cutsh};
   }).filter(Boolean);
 
-  // Build floor jobs from track record — Jan 2026 onwards only
+  // Floor jobs from raw rows — use same fromD/toD as main filter
   var floorStatuses=['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR'];
   var fjMap={};
-  var floorJan2026 = new Date('2026-01-01');
-  rows.forEach(function(r){
+  D._rawRows.forEach(function(r){
     var s=r[statusKey]; var jc=r[jcnoKey];
     if(floorStatuses.indexOf(s)<0) return;
-    // Filter by Revised Commitment Date >= Jan 2026
     var rd=new Date(r[revCommitKey]);
-    if(isNaN(rd) || rd < floorJan2026) return;
+    if(isNaN(rd) || rd < fromD || rd > toD) return;
     if(!fjMap[s]) fjMap[s]={proc:s,pqty:0,cutsh:0,jcnos:{},moMap:{}};
     var pq=parseFloat(r[pendKey])||0, cs=parseFloat(r[cutKey])||0;
     if(!fjMap[s].jcnos[jc]){
       fjMap[s].jcnos[jc]=1;
       fjMap[s].pqty+=pq; fjMap[s].cutsh+=cs;
     }
-    // Month from Revised Commitment Date
     var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()];
     var moSort=rd.getFullYear()*100+rd.getMonth();
     if(!fjMap[s].moMap[mo]) fjMap[s].moMap[mo]={mo:mo,pqty:0,cutsh:0,jcnos:{},sort:moSort};
@@ -563,9 +1030,6 @@ function processTrackRecord(data){
     });
     return {proc:s, pqty:f.pqty, cutsh:f.cutsh, cnt:Object.keys(f.jcnos).length, subs:subs};
   }).filter(Boolean);
-
-  D.loaded = true;
-  renderAll();
 }
 
 function processFloorJobs(ws){
@@ -594,12 +1058,18 @@ function processFloorJobs(ws){
 function renderAll(){
   if(!D.loaded) return;
 
-  // Date bar
-  var periodStr = 'Jan 2026 – '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][D.endDate.getMonth()]+' '+D.endDate.getFullYear();
-  document.getElementById('period-label').textContent = periodStr;
+  // Date bar — show actual filter range
+  var fromD = D._filterFrom || new Date('2026-01-01');
+  var toD   = D._filterTo   || D.endDate;
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var periodStr = fmtDate(fromD)+' – '+fmtDate(toD);
+  var periodShort = months[fromD.getMonth()]+' '+fromD.getFullYear()+' – '+months[toD.getMonth()]+' '+toD.getFullYear();
+  document.getElementById('period-label').textContent = periodShort;
   document.getElementById('last-update').textContent = D.lastUpdate;
   document.getElementById('total-records').textContent = fmt(D.totalJobs);
   document.getElementById('date-display').textContent = 'Last updated: '+D.lastUpdate+' | '+periodStr;
+  var ct = document.getElementById('chart-monthly-title');
+  if(ct) ct.textContent = '📅 Monthly Job Count — '+periodShort;
 
   // Cards
   document.getElementById('ov-total').textContent = fmt(D.totalJobs);
@@ -653,6 +1123,13 @@ function renderAll(){
 
   // Charts
   renderCharts();
+
+  // Aging report
+  renderAgingTab();
+
+  // Timeline — populate customer dropdown
+  populateTimelineDropdown();
+  renderAllCustomersTimeline();
 }
 
 // ===================== CHARTS =====================
@@ -914,7 +1391,7 @@ function renderCustTable(data){
     var bw=Math.round(r.total/maxJ*100);
     var p=total?Math.round(r.total/total*100)+'%':'—';
     var bg=i%2===0?'#ebf4fb':'#fff';
-    html+='<tr style="background:'+bg+'"><td>'+(i+1)+'</td><td>'+r.name+'</td><td class="num">'+fmt(r.total)+'</td><td class="num">'+fmt(r.dd)+'</td><td class="num">'+fmt(r.ns)+'</td><td class="num">'+fmt(r.cancel)+'</td><td><div class="bar-wrap" style="width:80px"><div class="bar-fill" style="width:'+bw+'%;background:'+colors[i%7]+'"></div></div> '+p+'</td></tr>';
+    html+='<tr class="clickable-row" style="background:'+bg+'" onclick="openDrillModal(\''+r.name.replace(/'/g,"\\'")+'\')" title="Click to view details"><td>'+(i+1)+'</td><td>'+r.name+'</td><td class="num">'+fmt(r.total)+'</td><td class="num">'+fmt(r.dd)+'</td><td class="num">'+fmt(r.ns)+'</td><td class="num">'+fmt(r.cancel)+'</td><td><div class="bar-wrap" style="width:80px"><div class="bar-fill" style="width:'+bw+'%;background:'+colors[i%7]+'"></div></div> '+p+'</td></tr>';
   });
   document.getElementById('cust-table').innerHTML=html||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text2)">No data</td></tr>';
   document.getElementById('cust-count').textContent=data.length+' customers';
@@ -923,14 +1400,8 @@ function renderCustTable(data){
 
 
 // Filters
-function filterCust(){
-  var q=document.getElementById('cust-search').value.toLowerCase();
-  renderCustTable(D.customers.filter(function(r){return r.name.toLowerCase().includes(q);}));
-}
-function filterMissingCust(){
-  var q=document.getElementById('miss-search').value.toLowerCase();
-  renderMissingCustTable(D.missingCust.filter(function(r){return r.name.toLowerCase().includes(q);}));
-}
+function filterCust(){ _filterCustDebounced(); }
+function filterMissingCust(){ _filterMissDebounced(); }
 
 // ===================== DOWNLOAD EXCEL =====================
 function downloadExcel(){
@@ -993,14 +1464,23 @@ function downloadExcel(){
 
   var NF='#,##0';
 
-  // ROW 0: Main title
-  set(0,0,'AIA JOB TRACK DASHBOARD  |  Jan 2026 \u2013 '+D.lastUpdate+'  |  Total Jobs: '+D.totalJobs,
+  // ROW 0: Main title — show filter date range in DD/MM/YYYY to DD/MM/YYYY format
+  function fmtDDMMYYYY(d){
+    var dd=String(d.getDate()).padStart(2,'0');
+    var mm=String(d.getMonth()+1).padStart(2,'0');
+    var yyyy=d.getFullYear();
+    return dd+'/'+mm+'/'+yyyy;
+  }
+  var xlFrom = D._filterFrom || new Date('2026-01-01');
+  var xlTo   = D._filterTo   || new Date();
+  var xlDateRange = fmtDDMMYYYY(xlFrom)+' to '+fmtDDMMYYYY(xlTo);
+  set(0,0,'AIA JOB TRACK DASHBOARD  |  '+xlDateRange+'  |  Total Jobs: '+D.totalJobs,
     cs(C.white,C.mainTitle,true,14,'center'));
 
   var B=2; // base row for tables
 
   // ---- TABLE 1: FLOOR JOBS ----
-  set(B,T1,'FLOOR JOBS \u2014 PENDING BY PROCESS & MONTH  (As of '+D.lastUpdate+')',cs(C.white,C.t1,true,10,'center'));
+  set(B,T1,'FLOOR JOBS \u2014 PENDING BY PROCESS & MONTH  ('+xlDateRange+')',cs(C.white,C.t1,true,10,'center'));
   var h1=['Process / Month','Pending Qty','Tot. Cut SH','Job Count','Status'];
   h1.forEach(function(h,i){set(B+1,T1+i,h,cs(C.white,C.t1,true,9,'center'));});
 
@@ -1054,7 +1534,7 @@ function downloadExcel(){
 
   // ---- TABLE 3: MISSING LIST — T2 column madhe Fold khali stack ----
   var r3=r2+2; // Fold grand total nantara 2 rows gap
-  set(r3,T2,'MISSING LIST \u2014 UPTO '+D.lastUpdate,cs(C.white,C.t3,true,10,'center'));
+  set(r3,T2,'MISSING LIST \u2014 '+xlDateRange,cs(C.white,C.t3,true,10,'center'));
   ['Process / Status','Pending Qty','Tot. Cut SH','Job Count','% Share'].forEach(function(h,i){set(r3+1,T2+i,h,cs(C.white,C.t3,true,9,'center'));});
 
   var r3d=r3+2,m3p=0,m3c=0,m3j=0;
@@ -1087,7 +1567,7 @@ function downloadExcel(){
   var custProcs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
   var custHeaders=['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
 
-  set(r4start,T2,'MISSING LIST \u2014 ALL MISSING JOBS BY CUSTOMER \u2014 UPTO '+D.lastUpdate,cs(C.white,lemonTitle,true,10,'center'));
+  set(r4start,T2,'MISSING LIST \u2014 ALL MISSING JOBS BY CUSTOMER \u2014 '+xlDateRange,cs(C.white,lemonTitle,true,10,'center'));
   custHeaders.forEach(function(h,i){set(r4start+1,T2+i,h,cs(C.white,lemonTitle,true,9,'center'));});
 
   var r4=r4start+2,t4p=0,t4c=0,t4j=0,t4ns=0;
@@ -1154,14 +1634,506 @@ function downloadExcel(){
   ws['!rows'][B]={hpt:20};
   ws['!rows'][B+1]={hpt:20};
 
+  // AutoFilter on full header row — covers all 21 columns (A to U)
+  ws['!autofilter'] = {ref: 'A4:U4'};
   XLSX.utils.book_append_sheet(wb,ws,'AIA Report');
 
+  // ---- SUMMARY DASHBOARD SHEET ----
+  var wsSum = XLSX.utils.aoa_to_sheet([]);
+  var sumGrid=[], sumStyle=[];
+  for(var si=0;si<40;si++){ sumGrid.push([]); sumStyle.push([]); for(var sj=0;sj<8;sj++){sumGrid[si].push('');sumStyle[si].push(null);} }
+  function sset(r,c,v,st){ sumGrid[r][c]=v; sumStyle[r][c]=st; }
+
+  // Title
+  sset(0,0,'AIA DASHBOARD SUMMARY  |  '+xlDateRange+'  |  Generated: '+fmtDDMMYYYY(new Date()),
+    cs(C.white,C.mainTitle,true,13,'center'));
+
+  // KPI block
+  var kpiData=[
+    ['Total Jobs',D.totalJobs,C.blue,'FF1A5FA8'],
+    ['Dispatched (DD)',D.dd,'FF2A6E2A','FF2A6E2A'],
+    ['Not Started',D.ns,'FFC47A00','FFC47A00'],
+    ['Cancelled',D.cancel,C.red,C.red],
+    ['Missing Jobs',D.missingCust.reduce(function(a,b){return a+b.jobs;},0),'FF8B1A1A','FF8B1A1A'],
+    ['Floor Jobs',D.floorJobs.reduce(function(a,f){return a+f.cnt;},0),'FF5C3FA0','FF5C3FA0']
+  ];
+  sset(2,0,'KEY METRICS',cs(C.white,C.t1,true,10,'center'));
+  kpiData.forEach(function(k,i){
+    var col=i;
+    sset(3,col,k[0],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,9,'center'));
+    sset(4,col,k[1],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,16,'center'));
+  });
+
+  // Monthly summary
+  sset(6,0,'MONTHLY BREAKDOWN',cs(C.white,C.t1,true,10,'center'));
+  ['Month','Total','DD','Not Started','Cancelled'].forEach(function(h,i){
+    sset(7,i,h,cs(C.white,C.t1,true,9,'center'));
+  });
+  D.monthly.forEach(function(m,i){
+    var bg=i%2===0?C.ltBlue:C.white;
+    sset(8+i,0,m.month,cs('FF1A1A2E',bg,false,9,'left'));
+    sset(8+i,1,m.total,cs('FF1A1A2E',bg,false,9,'right',NF));
+    sset(8+i,2,m.dd,cs('FF2A6E2A',bg,false,9,'right',NF));
+    sset(8+i,3,m.ns,cs('FFC47A00',bg,false,9,'right',NF));
+    sset(8+i,4,m.cancel,cs(C.red,bg,false,9,'right',NF));
+  });
+
+  // Aging summary
+  var agingBuckets={'0-7':0,'8-15':0,'16-30':0,'30+':0};
+  D.agingRows.forEach(function(r){ agingBuckets[r.bucket]=(agingBuckets[r.bucket]||0)+1; });
+  var agRow=8+D.monthly.length+2;
+  sset(agRow,0,'AGING SUMMARY',cs(C.white,'FF8B1A1A',true,10,'center'));
+  [['0-7 Days','FF2A6E2A'],['8-15 Days','FFC47A00'],['16-30 Days','FFB5541A'],['30+ Days','FFA02020']].forEach(function(a,i){
+    sset(agRow+1,i,a[0],cs(C.white,a[1],true,9,'center'));
+    var bk=a[0].split(' ')[0];
+    sset(agRow+2,i,agingBuckets[bk]||0,cs(a[1],C.white,true,14,'center',NF));
+  });
+
+  wsSum = XLSX.utils.aoa_to_sheet(sumGrid);
+  for(var ri2=0;ri2<sumStyle.length;ri2++){
+    for(var ci2=0;ci2<sumStyle[ri2].length;ci2++){
+      if(sumStyle[ri2][ci2]){
+        var addr2=XLSX.utils.encode_cell({r:ri2,c:ci2});
+        if(!wsSum[addr2]) wsSum[addr2]={t:'z',v:''};
+        wsSum[addr2].s=sumStyle[ri2][ci2];
+      }
+    }
+  }
+  wsSum['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:7}},
+    {s:{r:2,c:0},e:{r:2,c:5}},
+    {s:{r:6,c:0},e:{r:6,c:4}},
+    {s:{r:agRow,c:0},e:{r:agRow,c:3}}
+  ];
+  wsSum['!cols']=[{wch:22},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}];
+  // Freeze top row
+  wsSum['!freeze']={xSplit:0,ySplit:1};
+  // AutoFilter on Summary sheet — monthly breakdown header, all cols A:H
+  wsSum['!autofilter'] = {ref: 'A8:H8'};
+  XLSX.utils.book_append_sheet(wb,wsSum,'Summary');
+
+  // Freeze header on main sheet too
+  ws['!freeze']={xSplit:0,ySplit:2};
+
+  // ---- AGING REPORT SHEET ----
+  var agHeaders = ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','Print Date','Punch Date','Paste Date','Bucket'];
+  var agBucketFG = {'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
+  var agBucketBG = {'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
+
+  var agGrid=[], agStyle=[];
+  // Title row
+  agGrid.push([]); agStyle.push([]);
+  var agTitle='⏳ AGING REPORT — PENDING JOBS  |  '+xlDateRange+'  |  Total: '+D.agingRows.length+' jobs';
+  for(var ac=0;ac<agHeaders.length;ac++){ agGrid[0].push(ac===0?agTitle:''); agStyle[0].push(ac===0?cs(C.white,C.mainTitle,true,13,'center'):cs(C.white,C.mainTitle,false,13,'center')); }
+
+  // Bucket summary row
+  var agBktSumRow=[];agStyle.push([]);
+  var bkSumData={'0-7':0,'8-15':0,'16-30':0,'30+':0};
+  D.agingRows.forEach(function(r){bkSumData[r.bucket]=(bkSumData[r.bucket]||0)+1;});
+  for(var ac2=0;ac2<agHeaders.length;ac2++){agBktSumRow.push('');}
+  agBktSumRow[0]='Bucket:'; agBktSumRow[1]='0-7 Days: '+bkSumData['0-7']; agBktSumRow[2]='8-15 Days: '+bkSumData['8-15']; agBktSumRow[3]='16-30 Days: '+bkSumData['16-30']; agBktSumRow[4]='30+ Days: '+bkSumData['30+'];
+  agGrid.push(agBktSumRow);
+  for(var ac3=0;ac3<agHeaders.length;ac3++){agStyle[1].push(cs('FF555555','FFF5F5F5',false,9,'left'));}
+
+  // Header row
+  var agHdrRow=[]; var agHdrStyle=[];
+  agHeaders.forEach(function(h){ agHdrRow.push(h); agHdrStyle.push(cs(C.white,'FF1A1A2E',true,10,'center')); });
+  agGrid.push(agHdrRow); agStyle.push(agHdrStyle);
+
+  // isOverdue helper — OUTSIDE the loop to avoid JS strict mode error
+  var agTodayD = new Date(); agTodayD.setHours(0,0,0,0);
+  function agIsOverdue(dStr){
+    if(!dStr) return false;
+    var pts=dStr.split('/');
+    if(pts.length<3) return false;
+    var d=new Date(+pts[2], +pts[1]-1, +pts[0]);
+    return !isNaN(d) && d < agTodayD;
+  }
+
+  // Data rows
+  var agSeen={}, agRowNum=0;
+  D.agingRows.forEach(function(r){
+    if(agSeen[r.jcno]) return; agSeen[r.jcno]=1; agRowNum++;
+    var bfg=agBucketFG[r.bucket]||'FF333333';
+    var bbg=agBucketBG[r.bucket]||'FFFFFFFF';
+    var altBg = (agRowNum%2===0) ? 'FFF0F4FF' : 'FFFFFFFF';
+    var jcno=String(r.jcno).trim();
+    var printD=D.schedPrinting[jcno]||'';
+    var punchD=D.schedPunching[jcno]||'';
+    var pasteD=D.schedPasting[jcno]||'';
+    var row=[
+      agRowNum,
+      r.jcno,
+      r.jobName||'',
+      r.cust,
+      r.status,
+      Math.round(r.pqty||0),
+      Math.round(r.cutsh||0),
+      r.revDate?fmtDate(r.revDate):'',
+      r.days,
+      printD||'—',
+      punchD||'—',
+      pasteD||'—',
+      r.bucket+' days'
+    ];
+    var rowStyle=[
+      cs('FF888888',altBg,false,9,'center'),
+      cs('FF1A5FA8',altBg,true,9,'left'),
+      cs('FF1A1A2E',altBg,false,9,'left'),
+      cs('FF1A1A2E',altBg,false,9,'left'),
+      cs(bfg,bbg,true,9,'center'),
+      cs('FF0F3460',altBg,false,9,'right','#,##0'),
+      cs('FF0F3460',altBg,false,9,'right','#,##0'),
+      cs('FF444444',altBg,false,9,'center'),
+      cs(bfg,bbg,true,11,'center'),
+      agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
+      agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
+      agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
+      cs(bfg,bbg,true,9,'center')
+    ];
+    agGrid.push(row); agStyle.push(rowStyle);
+  });
+
+  var wsAging = XLSX.utils.aoa_to_sheet(agGrid);
+
+  // Apply styles cell by cell
+  for(var ari=0;ari<agStyle.length;ari++){
+    for(var aci=0;aci<agStyle[ari].length;aci++){
+      if(agStyle[ari][aci]){
+        var aAddr=XLSX.utils.encode_cell({r:ari,c:aci});
+        if(!wsAging[aAddr]) wsAging[aAddr]={t:'z',v:''};
+        wsAging[aAddr].s=agStyle[ari][aci];
+      }
+    }
+  }
+
+  // Merges — title row spans all cols, summary row spans all cols
+  wsAging['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:agHeaders.length-1}},
+    {s:{r:1,c:0},e:{r:1,c:agHeaders.length-1}}
+  ];
+
+  // Column widths
+  wsAging['!cols']=[
+    {wch:5},{wch:15},{wch:34},{wch:26},{wch:18},
+    {wch:13},{wch:12},{wch:16},{wch:13},
+    {wch:14},{wch:14},{wch:14},{wch:13}
+  ];
+
+  // Row heights
+  var agRH=[{hpt:30},{hpt:18},{hpt:22}];
+  for(var arh=0;arh<agRowNum;arh++) agRH.push({hpt:16});
+  wsAging['!rows']=agRH;
+
+  // Freeze top 3 rows (title + summary + header)
+  wsAging['!freeze']={xSplit:0,ySplit:3};
+
+  // AutoFilter on Aging Report header row (row index 2 = row 3 in Excel), all 13 cols A:M
+  wsAging['!autofilter'] = {ref: 'A3:M3'};
+  XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
+
   var today=new Date();
-  var fname='AIA_Report_'+today.getDate()+'_'+(today.getMonth()+1)+'_'+today.getFullYear()+'.xlsx';
+  var fromStr=fmtDDMMYYYY(xlFrom).replace(/\//g,'-');
+  var toStr=fmtDDMMYYYY(xlTo).replace(/\//g,'-');
+  var fname='AIA_Report_'+fromStr+'_to_'+toStr+'.xlsx';
   XLSX.writeFile(wb,fname);
 }
 
 
+
+
+// ===================== AGING REPORT =====================
+function renderAgingTab(){
+  if(!D.agingRows) return;
+  var b0=0,b1=0,b2=0,b3=0;
+  D.agingRows.forEach(function(r){
+    if(r.bucket==='0-7') b0++;
+    else if(r.bucket==='8-15') b1++;
+    else if(r.bucket==='16-30') b2++;
+    else b3++;
+  });
+  document.getElementById('age-0-7').textContent=fmt(b0);
+  document.getElementById('age-8-15').textContent=fmt(b1);
+  document.getElementById('age-16-30').textContent=fmt(b2);
+  document.getElementById('age-30plus').textContent=fmt(b3);
+  document.getElementById('aging-info').textContent=D.agingRows.length+' pending jobs total';
+
+  // Chart
+  destroyChart('aging');
+  var aCtx=document.getElementById('chart-aging');
+  if(aCtx){
+    // Group by bucket + process
+    var procs=[...new Set(D.agingRows.map(function(r){return r.status;}))];
+    var buckets=['0-7','8-15','16-30','30+'];
+    var bucketColors=['#2a6e2a','#c47a00','#b5541a','#a02020'];
+    var datasets=buckets.map(function(bk,bi){
+      return {
+        label:bk+' days',
+        data: procs.map(function(p){
+          return D.agingRows.filter(function(r){return r.status===p&&r.bucket===bk;}).length;
+        }),
+        backgroundColor:bucketColors[bi]+'cc',
+        borderRadius:4
+      };
+    });
+    _charts['aging']=new Chart(aCtx,{
+      type:'bar',
+      data:{labels:procs, datasets:datasets},
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},
+        scales:{
+          x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},
+          y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0efe9'}}
+        }
+      }
+    });
+  }
+  renderAgingTable(D.agingRows);
+}
+
+function renderAgingTable(rows){
+  var bucketColors={'0-7':'#2a6e2a','8-15':'#8a5200','16-30':'#b5541a','30+':'#a02020'};
+  var bucketBgs={'0-7':'#e8f5e8','8-15':'#fff8e1','16-30':'#fff3e0','30+':'#faeaea'};
+  var today=new Date(); today.setHours(0,0,0,0);
+  var html='';
+  var seen={};
+
+  function schedCell(dateStr, bgNormal){
+    if(!dateStr) return '<td class="num" style="color:var(--text2)">—</td>';
+    var parts=dateStr.split('/');
+    var d=new Date(+parts[2],+parts[1]-1,+parts[0]);
+    var overdue = d < today;
+    var style = overdue
+      ? 'background:#faeaea;color:#a02020;font-weight:700'
+      : 'background:'+bgNormal+';color:#1a1a2e';
+    return '<td class="num" style="'+style+'">'+(overdue?'⚠️ ':'')+dateStr+'</td>';
+  }
+
+  rows.forEach(function(r,i){
+    if(seen[r.jcno]) return; seen[r.jcno]=1;
+    var bg=bucketBgs[r.bucket]||'#fff';
+    var fg=bucketColors[r.bucket]||'#333';
+    var dStr=r.revDate?fmtDate(r.revDate):'—';
+    var jcno=String(r.jcno).trim();
+    var printDate = D.schedPrinting[jcno]  || null;
+    var punchDate = D.schedPunching[jcno]  || null;
+    var pasteDate = D.schedPasting[jcno]   || null;
+    html+='<tr style="background:'+bg+'">'
+      +'<td>'+(i+1)+'</td>'
+      +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
+      +'<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+      +'<td>'+r.cust+'</td>'
+      +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
+      +'<td class="num">'+fmt(r.pqty)+'</td>'
+      +'<td class="num">'+fmt(r.cutsh)+'</td>'
+      +'<td class="num">'+dStr+'</td>'
+      +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
+      +schedCell(printDate,'#d0e8f5')
+      +schedCell(punchDate,'#e8e0f5')
+      +schedCell(pasteDate,'#fde9d9')
+      +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
+      +'</tr>';
+  });
+  document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
+}
+
+// ===================== DRILL-DOWN MODAL =====================
+function openDrillModal(custName){
+  if(!D.loaded) return;
+  var cust = D.customers.find(function(c){ return c.name===custName; });
+  var missC = D.missingCust.find(function(c){ return c.name===custName; });
+  var agingC = D.agingRows.filter(function(r){ return r.cust===custName; });
+
+  // Summary cards
+  var total=cust?cust.total:0, dd=cust?cust.dd:0, ns=cust?cust.ns:0, cancel=cust?cust.cancel:0;
+  var missJobs=missC?missC.jobs:0, missPqty=missC?missC.pqty:0;
+
+  // Age buckets for this customer
+  var ab={'0-7':0,'8-15':0,'16-30':0,'30+':0};
+  agingC.forEach(function(r){ ab[r.bucket]=(ab[r.bucket]||0)+1; });
+
+  var body='<div class="drill-grid">'
+    +'<div class="drill-card"><div class="dc-label">Total Jobs</div><div class="dc-val" style="color:#1a5fa8">'+total+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">Dispatched (DD)</div><div class="dc-val" style="color:#2a6e2a">'+dd+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">Not Started</div><div class="dc-val" style="color:#8a5200">'+ns+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">Cancelled</div><div class="dc-val" style="color:#a02020">'+cancel+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">Missing Jobs</div><div class="dc-val" style="color:#a02020">'+missJobs+'</div><div class="dc-sub">Pending: '+fmt(missPqty)+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">🟢 0-7 Days</div><div class="dc-val" style="color:#2a6e2a">'+ab['0-7']+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">🟡 8-15 Days</div><div class="dc-val" style="color:#8a5200">'+ab['8-15']+'</div></div>'
+    +'<div class="drill-card"><div class="dc-label">🔴 30+ Days</div><div class="dc-val" style="color:#a02020">'+ab['30+']+'</div></div>'
+    +'</div>';
+
+  // Process breakdown for missing
+  if(missC && missC.proc){
+    body+='<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Missing by Process</div>';
+    body+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">';
+    var procs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+    procs.forEach(function(p){
+      var v=(missC.proc&&missC.proc[p])||0;
+      if(v>0) body+='<span class="badge b-floor" style="font-size:11px;padding:3px 10px">'+p+': '+v+'</span>';
+    });
+    body+='</div>';
+  }
+
+  // Aging detail table for this customer
+  if(agingC.length){
+    body+='<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Pending Jobs (Aging)</div>';
+    body+='<div class="table-wrap"><table class="drill-jobs-table"><thead><tr>'
+      +'<th>JCNO</th><th>Status</th><th class="num">Pend Qty</th><th class="num">Rev. Commit</th><th class="num">Days</th><th>Bucket</th>'
+      +'</tr></thead><tbody>';
+    var bucketColors2={'0-7':'#2a6e2a','8-15':'#8a5200','16-30':'#b5541a','30+':'#a02020'};
+    var seen2={};
+    agingC.forEach(function(r){
+      if(seen2[r.jcno]) return; seen2[r.jcno]=1;
+      var fg=bucketColors2[r.bucket]||'#333';
+      body+='<tr><td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td><td>'+r.status+'</td>'
+        +'<td class="num">'+fmt(r.pqty)+'</td><td class="num">'+fmtDate(r.revDate)+'</td>'
+        +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
+        +'<td><span class="badge" style="background:#f5f5f5;color:'+fg+'">'+r.bucket+'d</span></td></tr>';
+    });
+    body+='</tbody></table></div>';
+  }
+
+  document.getElementById('drill-title').textContent='📋 '+custName;
+  document.getElementById('drill-body').innerHTML=body;
+  document.getElementById('drill-modal').classList.add('show');
+}
+
+function closeDrillModal(e){
+  if(e.target===document.getElementById('drill-modal'))
+    document.getElementById('drill-modal').classList.remove('show');
+}
+
+// ===================== CUSTOMER TIMELINE =====================
+function populateTimelineDropdown(){
+  var sel=document.getElementById('timeline-cust-select');
+  var prev=sel.value;
+  sel.innerHTML='<option value="">-- Select a customer --</option>';
+  D.customers.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c.name; o.textContent=c.name+' ('+c.total+' jobs)';
+    sel.appendChild(o);
+  });
+  if(prev) sel.value=prev;
+}
+
+function renderTimeline(){
+  var custName=document.getElementById('timeline-cust-select').value;
+  var groupBy=document.getElementById('timeline-group').value;
+  var wrap=document.getElementById('timeline-wrap');
+  if(!custName){ wrap.innerHTML='<div class="empty"><p>Select a customer to view their job timeline</p></div>'; return; }
+
+  // Get all raw rows for this customer
+  var k=D._keys;
+  var custRows=D._rawRows.filter(function(r){
+    return String(r[k.custKey]).trim()===custName;
+  });
+
+  if(!custRows.length){ wrap.innerHTML='<div class="empty"><p>No data found for this customer</p></div>'; return; }
+
+  // Group
+  var groups={};
+  custRows.forEach(function(r){
+    var key, rd=new Date(r[k.revCommitKey]);
+    if(groupBy==='month'){
+      if(isNaN(rd)) return;
+      key=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()]+"'"+String(rd.getFullYear()).slice(2);
+    } else if(groupBy==='status'){
+      key=r[k.statusKey]||'Unknown';
+    } else {
+      key=r[k.statusKey]||'Unknown';
+    }
+    if(!groups[key]) groups[key]={label:key,jcnos:{},dd:0,ns:0,cancel:0,other:0};
+    var jc=r[k.jcnoKey];
+    if(!groups[key].jcnos[jc]){
+      groups[key].jcnos[jc]=1;
+      var s=r[k.statusKey];
+      if(s==='DD') groups[key].dd++;
+      else if(s==='Job Not Started') groups[key].ns++;
+      else if(s==='CANCELLED') groups[key].cancel++;
+      else groups[key].other++;
+    }
+  });
+
+  var entries=Object.values(groups);
+  var maxCount=Math.max.apply(null,entries.map(function(g){return Object.keys(g.jcnos).length;}));
+  document.getElementById('timeline-info').textContent=custName+' — '+Object.values(
+    custRows.reduce(function(a,r){a[r[k.jcnoKey]]=1;return a;},{})
+  ).length+' total jobs';
+
+  var html='<div style="padding:12px 0">';
+  entries.forEach(function(g){
+    var total=Object.keys(g.jcnos).length;
+    var pct=maxCount?Math.round(total/maxCount*100):0;
+    var ddW=total?Math.round(g.dd/total*100):0;
+    var nsW=total?Math.round(g.ns/total*100):0;
+    var clW=total?Math.round(g.cancel/total*100):0;
+    var otW=100-ddW-nsW-clW;
+    html+='<div class="timeline-bar-row">'
+      +'<div class="tl-label" title="'+g.label+'">'+g.label+'</div>'
+      +'<div class="tl-bar-bg">'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(ddW*pct/100)+'%;background:#2a6e2a;left:0">'+(g.dd>0?g.dd:'')+'</div>'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(nsW*pct/100)+'%;background:#c47a00;left:'+Math.round(ddW*pct/100)+'%">'+(g.ns>0?g.ns:'')+'</div>'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(clW*pct/100)+'%;background:#a02020;left:'+(Math.round(ddW*pct/100)+Math.round(nsW*pct/100))+'%">'+(g.cancel>0?g.cancel:'')+'</div>'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(otW*pct/100)+'%;background:#1a5fa8;left:'+(Math.round(ddW*pct/100)+Math.round(nsW*pct/100)+Math.round(clW*pct/100))+'%">'+(g.other>0?g.other:'')+'</div>'
+      +'</div>'
+      +'<div class="tl-count">'+total+'</div>'
+      +'</div>';
+  });
+  html+='<div style="display:flex;gap:14px;margin-top:10px;padding-left:118px;font-size:10px">'
+    +'<span>🟢 DD / Dispatched</span><span>🟡 Not Started</span><span>🔴 Cancelled</span><span>🔵 In Process</span>'
+    +'</div></div>';
+  wrap.innerHTML=html;
+}
+
+function renderAllCustomersTimeline(){
+  var k=D._keys;
+  var wrap=document.getElementById('all-customers-timeline');
+  if(!D.loaded||!D._rawRows.length){ wrap.innerHTML='<div class="empty"><p>Upload data to view timeline</p></div>'; return; }
+
+  // Monthly totals
+  var monthMap={};
+  D._rawRows.forEach(function(r){
+    var rd=new Date(r[k.revCommitKey]); if(isNaN(rd)) return;
+    var mkey=rd.getFullYear()*100+rd.getMonth();
+    var mlbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()]+"'"+String(rd.getFullYear()).slice(2);
+    if(!monthMap[mkey]) monthMap[mkey]={label:mlbl,sort:mkey,jcnos:{},dd:0,ns:0,cancel:0,other:0};
+    var jc=r[k.jcnoKey];
+    if(!monthMap[mkey].jcnos[jc]){
+      monthMap[mkey].jcnos[jc]=1;
+      var s=r[k.statusKey];
+      if(s==='DD') monthMap[mkey].dd++;
+      else if(s==='Job Not Started') monthMap[mkey].ns++;
+      else if(s==='CANCELLED') monthMap[mkey].cancel++;
+      else monthMap[mkey].other++;
+    }
+  });
+  var months=Object.values(monthMap).sort(function(a,b){return a.sort-b.sort;});
+  var maxCount=Math.max.apply(null,months.map(function(m){return Object.keys(m.jcnos).length;}));
+
+  var html='<div style="padding:12px 0">';
+  months.forEach(function(m){
+    var total=Object.keys(m.jcnos).length;
+    var pct=maxCount?Math.round(total/maxCount*100):0;
+    var ddW=total?Math.round(m.dd/total*100):0;
+    var nsW=total?Math.round(m.ns/total*100):0;
+    var clW=total?Math.round(m.cancel/total*100):0;
+    html+='<div class="timeline-bar-row">'
+      +'<div class="tl-label">'+m.label+'</div>'
+      +'<div class="tl-bar-bg">'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(ddW*pct/100)+'%;background:#2a6e2a;left:0">'+(m.dd>0?m.dd:'')+'</div>'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(nsW*pct/100)+'%;background:#c47a00;left:'+Math.round(ddW*pct/100)+'%">'+(m.ns>0?m.ns:'')+'</div>'
+      +'<div class="tl-bar-fill" style="width:'+Math.round(clW*pct/100)+'%;background:#a02020;left:'+(Math.round(ddW*pct/100)+Math.round(nsW*pct/100))+'%">'+(m.cancel>0?m.cancel:'')+'</div>'
+      +'</div>'
+      +'<div class="tl-count">'+total+'</div>'
+      +'</div>';
+  });
+  html+='<div style="display:flex;gap:14px;margin-top:10px;padding-left:118px;font-size:10px">'
+    +'<span>🟢 DD</span><span>🟡 Not Started</span><span>🔴 Cancelled</span><span>🔵 In Process</span>'
+    +'</div></div>';
+  wrap.innerHTML=html;
+}
 
 // Init
 window.onload=function(){

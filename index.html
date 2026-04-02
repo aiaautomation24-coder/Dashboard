@@ -567,37 +567,6 @@ function fmt(n){ if(!n && n!==0) return '—'; return Math.round(n).toLocaleStri
 function fmtDate(d){ if(!d) return '—'; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
 function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '0%'; }
 
-// Safe date parser — fixes timezone issues when reading Excel dates
-// XLSX cellDates:true gives LOCAL midnight Date objects — use local getters
-// ISO strings "YYYY-MM-DD" parse as UTC — must use manual parse
-function safeDate(v){
-  if(!v && v !== 0) return null;
-  // Date object from cellDates:true — local midnight, use local getters
-  if(v instanceof Date){
-    if(isNaN(v.getTime())) return null;
-    return new Date(v.getFullYear(), v.getMonth(), v.getDate());
-  }
-  // Number = Excel serial date
-  if(typeof v === 'number'){
-    var d = new Date(Math.round((v - 25569) * 86400 * 1000));
-    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  }
-  // String
-  if(typeof v === 'string'){
-    var s = v.trim();
-    // DD/MM/YYYY or DD-MM-YYYY — local parse
-    var m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if(m1) return new Date(+m1[3], +m1[2]-1, +m1[1]);
-    // ISO YYYY-MM-DD — must parse manually to avoid UTC shift
-    var m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if(m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
-    // Fallback — avoid new Date(string) for ISO
-    var parsed = new Date(s);
-    if(!isNaN(parsed.getTime())) return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  }
-  return null;
-}
-
 // ===================== DATE FILTER =====================
 function toInputDate(d){ if(!d) return ''; var mm=('0'+(d.getMonth()+1)).slice(-2), dd2=('0'+d.getDate()).slice(-2); return d.getFullYear()+'-'+mm+'-'+dd2; }
 function fromInputDate(s){ if(!s) return null; var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
@@ -617,7 +586,7 @@ function setQuick(type, btn){
   } else if(type==='thisyear'){
     from = new Date(now.getFullYear(), 0, 1);
   } else { // full range
-    var allValid2 = D._rawRows.map(function(r){ return safeDate(r[D._keys.revCommitKey]); }).filter(function(d){ return d && !isNaN(d); });
+    var allValid2 = D._rawRows.map(function(r){ return new Date(r[D._keys.revCommitKey]); }).filter(function(d){ return !isNaN(d); });
     from = allValid2.length ? new Date(Math.min.apply(null, allValid2)) : new Date('2026-01-01');
     to   = allValid2.length ? new Date(Math.max.apply(null, allValid2)) : new Date();
     to.setHours(23,59,59,999);
@@ -645,7 +614,7 @@ function applyDateFilter(){
 
 function resetDateFilter(){
   // Reset to full data range based on Revised Commitment Date
-  var allValid = D._rawRows.map(function(r){ return safeDate(r[D._keys.revCommitKey]); }).filter(function(d){ return d && !isNaN(d); });
+  var allValid = D._rawRows.map(function(r){ return new Date(r[D._keys.revCommitKey]); }).filter(function(d){ return !isNaN(d); });
   var minD = allValid.length ? new Date(Math.min.apply(null, allValid)) : new Date('2026-01-01');
   var maxD = allValid.length ? new Date(Math.max.apply(null, allValid)) : new Date();
   D._filterFrom = new Date(minD); D._filterFrom.setHours(0,0,0,0);
@@ -667,8 +636,8 @@ function reProcessAndRender(){
 
   // Filter by Revised Commitment Date
   var allRows = D._rawRows.filter(function(r){
-    var d = safeDate(r[k.revCommitKey]);
-    return d && !isNaN(d) && d >= from && d <= to;
+    var d = new Date(r[k.revCommitKey]);
+    return !isNaN(d) && d >= from && d <= to;
   });
 
   if(!allRows.length){ alert('Selected date range mein koi Revised Commitment Date data nahi mila!'); return; }
@@ -756,15 +725,27 @@ function parseScheduleSheet(rows){
   var MONTHS = {JANUARY:0,FEBRUARY:1,MARCH:2,APRIL:3,MAY:4,JUNE:5,
                 JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11};
 
+  // Excel serial number → correct local Date (NO timezone shift)
+  // cellDates:false वापरल्यामुळे dates येतात as raw numbers (e.g. 46115)
+  // Excel serial 1 = 1900-01-01. Excel ने 1900 ला चुकीचा leap year मानला,
+  // त्यामुळे serial >= 60 साठी extra 1 day correction लागतो.
+  function excelSerialToDate(serial){
+    // Valid range: 43831 = 2020-01-01, 73050 = 2099-12-31
+    // Quantities/row numbers are outside this range, so they won't match
+    if(typeof serial !== 'number' || serial < 43831 || serial > 73050) return null;
+    // Excel serial → days since Unix epoch (1970-01-01)
+    // Correct offset: 25569 (Excel's 1900-01-01 to 1970-01-01, including its leap year bug)
+    var days = serial - 25569;
+    // Read UTC components → build LOCAL date to avoid IST timezone shift
+    var tmp = new Date(days * 86400000);
+    return new Date(tmp.getUTCFullYear(), tmp.getUTCMonth(), tmp.getUTCDate());
+  }
+
   function tryDate(v){
     if(v === null || v === undefined || v === '') return null;
-    // JS Date object (cellDates:true) — local midnight, use local getters
-    if(v instanceof Date && !isNaN(v.getTime()))
-      return new Date(v.getFullYear(), v.getMonth(), v.getDate());
-    // Excel serial number (cellDates:false) — convert via UTC to avoid DST issues
-    if(typeof v === 'number' && v > 1){
-      var serial = new Date(Math.round((v - 25569) * 86400 * 1000));
-      return new Date(serial.getUTCFullYear(), serial.getUTCMonth(), serial.getUTCDate());
+    // Excel serial number (cellDates:false → numbers जसे 46115)
+    if(typeof v === 'number'){
+      return excelSerialToDate(v); // null येऊ शकतो if not a valid date serial
     }
     if(typeof v !== 'string') return null;
     var s = v.trim();
@@ -833,7 +814,7 @@ function loadTrackRecord(input){
   reader.onload = function(e){
     setTimeout(function(){
     try{
-      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,bookVBA:false,bookFiles:false,bookProps:false});
+      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true,bookVBA:false,bookFiles:false,bookProps:false});
       // Track record sheet dhundho
       var trSheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().includes('track') || n.toLowerCase().includes('record'); }) || wb.SheetNames[0];
       var trSheet = wb.Sheets[trSheetName];
@@ -898,7 +879,7 @@ function processTrackRecord(data){
   D._keys = { dateKey:dateKey, statusKey:statusKey, custKey:custKey, pendKey:pendKey, cutKey:cutKey, nextKey:nextKey, jcnoKey:jcnoKey, jobNameKey:jobNameKey, revCommitKey:revCommitKey, dispatchDateKey:dispatchDateKey };
 
   // Find min & max Revised Commitment Date from file
-  var allValid = data.map(function(r){ return safeDate(r[revCommitKey]); }).filter(function(d){ return d && !isNaN(d); });
+  var allValid = data.map(function(r){ return new Date(r[revCommitKey]); }).filter(function(d){ return !isNaN(d); });
   var maxD = allValid.length ? new Date(Math.max.apply(null, allValid)) : new Date();
   var minD = allValid.length ? new Date(Math.min.apply(null, allValid)) : new Date('2026-01-01');
 
@@ -912,8 +893,8 @@ function processTrackRecord(data){
 
   // Filter & compute — by Revised Commitment Date
   var allRows = data.filter(function(r){
-    var d = safeDate(r[revCommitKey]);
-    return d && !isNaN(d) && d >= D._filterFrom && d <= D._filterTo;
+    var d = new Date(r[revCommitKey]);
+    return !isNaN(d) && d >= D._filterFrom && d <= D._filterTo;
   });
 
   if(!allRows.length){ alert('No data found in Revised Commitment Date range'); return; }
@@ -952,8 +933,7 @@ function computeFromRows(rows, k, fromD, toD){
   // Monthly breakdown — by Revised Commitment Date
   var monthMap = {};
   rows.forEach(function(r){
-    var d = safeDate(r[revCommitKey]);
-    if(!d) return;
+    var d = new Date(r[revCommitKey]);
     var key = d.getFullYear()+'-'+(d.getMonth()+1);
     var lbl = ['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]+' '+d.getFullYear();
     if(!monthMap[key]) monthMap[key]={month:lbl,jcnos:{},dd:{},ns:{},cancel:{},ph:{},screen:{},pasting:{},sort:d.getFullYear()*100+d.getMonth()};
@@ -1010,11 +990,10 @@ function computeFromRows(rows, k, fromD, toD){
   var pendingStatuses = ['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR','Job Not Started','LABLE CUTTING'];
   D.agingRows = D._rawRows.filter(function(r){
     if(pendingStatuses.indexOf(r[statusKey]) < 0) return false;
-    var rd = safeDate(r[revCommitKey]);
-    return rd && !isNaN(rd) && rd >= fromD && rd <= toD;
+    var rd = new Date(r[revCommitKey]);
+    return !isNaN(rd) && rd >= fromD && rd <= toD;
   }).map(function(r){
-    var rd = safeDate(r[revCommitKey]);
-    if(!rd) return null;
+    var rd = new Date(r[revCommitKey]);
     var days = Math.floor((today3 - rd) / 86400000);
     var bucket = days <= 7 ? '0-7' : days <= 15 ? '8-15' : days <= 30 ? '16-30' : '30+';
     return {
@@ -1028,13 +1007,13 @@ function computeFromRows(rows, k, fromD, toD){
       days: days,
       bucket: bucket
     };
-  }).filter(Boolean).sort(function(a,b){ return b.days - a.days; });
+  }).sort(function(a,b){ return b.days - a.days; });
 
   // Missing list — filter by Revised Commitment Date using same fromD/toD as main filter
   var allowedMiss = ['LABLE CUTTING','FOIL','FRONT BAL','Job Not Started','LAMINATION','PASTING','PH','SCREEN','VDP','VR'];
   var missRows = D._rawRows.filter(function(r){
     if(allowedMiss.indexOf(r[statusKey]) < 0) return false;
-    var rd = safeDate(r[revCommitKey]);
+    var rd = new Date(r[revCommitKey]);
     if(isNaN(rd)) return false;
     return rd >= fromD && rd <= toD;
   });
@@ -1091,8 +1070,8 @@ function computeFromRows(rows, k, fromD, toD){
   D._rawRows.forEach(function(r){
     var s=r[statusKey]; var jc=r[jcnoKey];
     if(floorStatuses.indexOf(s)<0) return;
-    var rd=safeDate(r[revCommitKey]);
-    if(!rd || isNaN(rd) || rd < fromD || rd > toD) return;
+    var rd=new Date(r[revCommitKey]);
+    if(isNaN(rd) || rd < fromD || rd > toD) return;
     if(!fjMap[s]) fjMap[s]={proc:s,pqty:0,cutsh:0,jcnos:{},moMap:{}};
     var pq=parseFloat(r[pendKey])||0, cs=parseFloat(r[cutKey])||0;
     if(!fjMap[s].jcnos[jc]){
@@ -2127,8 +2106,7 @@ function renderTimeline(){
   // Group
   var groups={};
   custRows.forEach(function(r){
-    var key, rd=safeDate(r[k.revCommitKey]);
-    if(!rd) return;
+    var key, rd=new Date(r[k.revCommitKey]);
     if(groupBy==='month'){
       if(isNaN(rd)) return;
       key=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()]+"'"+String(rd.getFullYear()).slice(2);
@@ -2188,7 +2166,7 @@ function renderAllCustomersTimeline(){
   // Monthly totals
   var monthMap={};
   D._rawRows.forEach(function(r){
-    var rd=safeDate(r[k.revCommitKey]); if(!rd || isNaN(rd)) return;
+    var rd=new Date(r[k.revCommitKey]); if(isNaN(rd)) return;
     var mkey=rd.getFullYear()*100+rd.getMonth();
     var mlbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][rd.getMonth()]+"'"+String(rd.getFullYear()).slice(2);
     if(!monthMap[mkey]) monthMap[mkey]={label:mlbl,sort:mkey,jcnos:{},dd:0,ns:0,cancel:0,other:0};
@@ -2271,12 +2249,20 @@ function getMeetingData(custFilter){
   var INPROCESS_LIST = ['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR','LABLE CUTTING'];
   var NS_STATUS      = 'Job Not Started';
 
+  // Active date filter — same range jo Overview/main tab madhe select aahe
+  var filterFrom = D._filterFrom ? new Date(D._filterFrom) : new Date('2000-01-01');
+  var filterTo   = D._filterTo   ? new Date(D._filterTo)   : new Date('2099-12-31');
+  filterFrom.setHours(0,0,0,0);
+  filterTo.setHours(23,59,59,999);
+
   var custMap = {};
   D._rawRows.forEach(function(r){
     var cust = String(r[k.custKey]).trim();
     if(custFilter !== 'ALL' && cust !== custFilter) return;
-    var rd = safeDate(r[k.revCommitKey]);
-    if(!rd || isNaN(rd)) return;
+    var rd = new Date(r[k.revCommitKey]);
+    if(isNaN(rd)) return;
+    // *** DATE FILTER: fakt selected date range madhlach data ***
+    if(rd < filterFrom || rd > filterTo) return;
     var status  = String(r[k.statusKey]||'').trim();
     var jcno    = String(r[k.jcnoKey]).trim();
     var jobName = k.jobNameKey ? String(r[k.jobNameKey]||'').trim() : '';
@@ -2284,7 +2270,7 @@ function getMeetingData(custFilter){
 
     var dispatchDate = null;
     if(k.dispatchDateKey && r[k.dispatchDateKey]){
-      var dd2 = safeDate(r[k.dispatchDateKey]);
+      var dd2 = new Date(r[k.dispatchDateKey]);
       if(!isNaN(dd2)) dispatchDate = dd2;
     }
 
@@ -2793,50 +2779,20 @@ function downloadMeetingExcel(){
     XLSX.utils.book_append_sheet(wb2, wsSumSheet, 'Customer Summary');
 
     // ===================== HELPER: build a customer-wise job sheet =====================
-    // sheetType: 'ddsdsc' | 'inprocess' | 'cancelled'
-    function buildJobSheet(sheetTitle, filterFn, headerColor, sheetType){
+    function buildJobSheet(sheetTitle, filterFn, headerColor){
       var jRows = [], jStyles = [];
       function addJRow(cols,sts){ jRows.push(cols); jStyles.push(sts); }
 
-      var isInProcess = sheetType === 'inprocess';
-      var isCancelled = sheetType === 'cancelled';
-      var isDDSDSC    = sheetType === 'ddsdsc';
+      // Title
+      addJRow(
+        [sheetTitle+'  |  '+custLabel+'  |  '+dateRange2,'','','','','',''],
+        [mcs('FFFFFFFF','FF1A1A2E',true,12,'left'),null,null,null,null,null,null]
+      );
+      addJRow(['','','','','','',''], [null,null,null,null,null,null,null]);
 
-      // Column headers — vary by sheet type
-      var jHdrs, colCount, mergeEnd, colWidths, filterRef;
-      if(isInProcess){
-        // #, Customer, JCNO, Job Name, Job Status, Rev. Commit Date
-        jHdrs     = ['#','Customer','JCNO','Job Name','Job Status','Rev. Commit Date'];
-        colCount  = 6; mergeEnd = 5;
-        colWidths = [{wch:5},{wch:28},{wch:14},{wch:36},{wch:18},{wch:16}];
-        filterRef = 'A3:F3';
-      } else if(isCancelled){
-        // #, Customer, JCNO, Job Name, Job Status, Rev. Commit Date  (no dispatch/days)
-        jHdrs     = ['#','Customer','JCNO','Job Name','Job Status','Rev. Commit Date'];
-        colCount  = 6; mergeEnd = 5;
-        colWidths = [{wch:5},{wch:28},{wch:14},{wch:36},{wch:18},{wch:16}];
-        filterRef = 'A3:F3';
-      } else {
-        // DD/SD/SC: #, Customer, JCNO, Job Name, Job Status, Rev. Commit Date, Dispatch Date, Days
-        jHdrs     = ['#','Customer','JCNO','Job Name','Job Status','Rev. Commit Date','Dispatch Date','Days (Preponed/Postponed)'];
-        colCount  = 8; mergeEnd = 7;
-        colWidths = [{wch:5},{wch:28},{wch:14},{wch:36},{wch:18},{wch:16},{wch:16},{wch:22}];
-        filterRef = 'A3:H3';
-      }
-
-      // Title row
-      var titleBlanks = []; for(var ti=1;ti<colCount;ti++) titleBlanks.push('');
-      var titleStyles = [mcs('FFFFFFFF','FF1A1A2E',true,12,'left')];
-      for(var ti2=1;ti2<colCount;ti2++) titleStyles.push(null);
-      addJRow([sheetTitle+'  |  '+custLabel+'  |  '+dateRange2].concat(titleBlanks), titleStyles);
-      addJRow(titleBlanks.concat(['']), titleStyles.map(function(){ return null; }));
-
-      // Header row
-      addJRow(jHdrs, jHdrs.map(function(h,hi){
-        var hbg = isDDSDSC    && hi===6 ? 'FF1A4A1A' :
-                  isDDSDSC    && hi===7 ? 'FF3A1A3A' : headerColor;
-        return mcs('FFFFFFFF', hbg, true, 10, 'center');
-      }));
+      // Header
+      var jHdrs = ['#','Customer','JCNO','Job Name','Job Status','Rev. Commit Date','Days'];
+      addJRow(jHdrs, jHdrs.map(function(){ return mcs('FFFFFFFF', headerColor, true, 10, 'center'); }));
 
       var jRowNum = 0;
       data.forEach(function(cust){
@@ -2844,77 +2800,31 @@ function downloadMeetingExcel(){
         if(!jobs.length) return;
 
         // Customer separator row
-        var sepBlanks = ['']; for(var si3=0;si3<colCount-1;si3++) sepBlanks.push('');
-        var sepStyles = [null, mcs('FF0F3460','FFD6E4F0',true,10,'left')];
-        for(var si4=2;si4<colCount;si4++) sepStyles.push(null);
-        sepBlanks[1] = cust.name;
-        addJRow(sepBlanks, sepStyles);
+        addJRow(
+          ['', cust.name, '', '', '', '', ''],
+          [null, mcs('FF0F3460','FFD6E4F0',true,10,'left'), null, null, null, null, null]
+        );
 
         jobs.forEach(function(j){
           jRowNum++;
+          var bk  = getBK(j.days);
+          var bfg = BK[bk].fg;
+          var bbg = BK[bk].bg;
           var alt = jRowNum%2===0 ? 'FFF5F8FF' : 'FFFFFFFF';
-          var revStr = j.revDate ? fmt2(j.revDate) : '—';
-          var jcnoStr = String(j.jcno).trim();
-
-          if(isInProcess){
-            addJRow(
-              [jRowNum, cust.name, j.jcno, j.jobName||'', j.status, revStr],
-              [
-                mcs('FF888888',alt,false,9,'center'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FF1A5FA8',alt,true, 9,'left'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FF444444',alt,false,9,'center'),
-                mcs('FF444444',alt,false,9,'center')
-              ]
-            );
-
-          } else if(isCancelled){
-            addJRow(
-              [jRowNum, cust.name, j.jcno, j.jobName||'', j.status, revStr],
-              [
-                mcs('FF888888',alt,false,9,'center'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FF1A5FA8',alt,true, 9,'left'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FFA02020','FFFAEAEA',true,9,'center'),
-                mcs('FF444444',alt,false,9,'center')
-              ]
-            );
-
-          } else {
-            // DD/SD/SC — with dispatch date + preponed/postponed
-            var refD = j.dispatchDate
-              ? new Date(j.dispatchDate.getFullYear(), j.dispatchDate.getMonth(), j.dispatchDate.getDate())
-              : new Date();
-            var revD = j.revDate
-              ? new Date(j.revDate.getFullYear(), j.revDate.getMonth(), j.revDate.getDate())
-              : null;
-            var calcDays = revD ? Math.floor((refD - revD) / 86400000) : j.days;
-            var bk  = getBK(calcDays);
-            var bfg = BK[bk].fg; var bbg = BK[bk].bg;
-            var daysDisp = calcDays < 0 ? '▲ '+Math.abs(calcDays)+'d Preponed'
-                         : calcDays===0 ? '✅ On Time'
-                         : '▼ '+calcDays+'d Postponed';
-            var ddStr  = j.dispatchDate ? fmt2(j.dispatchDate) : '—';
-            var ddStyle = j.dispatchDate
-              ? mcs('FF1A5A1A','FFD0F0D0',true,9,'center')
-              : mcs('FFAAAAAA',alt,false,9,'center');
-
-            addJRow(
-              [jRowNum, cust.name, j.jcno, j.jobName||'', j.status, revStr, ddStr, daysDisp],
-              [
-                mcs('FF888888',alt,false,9,'center'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FF1A5FA8',alt,true, 9,'left'),
-                mcs('FF1A1A2E',alt,false,9,'left'),
-                mcs('FF444444',alt,false,9,'center'),
-                mcs('FF444444',alt,false,9,'center'),
-                ddStyle,
-                mcs(bfg,bbg,true,9,'center')
-              ]
-            );
-          }
+          var daysDisp = j.days < 0 ? '▲ '+Math.abs(j.days)+' early' : j.days+'d delay';
+          addJRow(
+            [jRowNum, cust.name, j.jcno, j.jobName||'', j.status,
+             j.revDate ? fmt2(j.revDate) : '', daysDisp],
+            [
+              mcs('FF888888', alt, false, 9, 'center'),
+              mcs('FF1A1A2E', alt, false, 9, 'left'),
+              mcs('FF1A5FA8', alt, true,  9, 'left'),
+              mcs('FF1A1A2E', alt, false, 9, 'left'),
+              mcs('FF444444', alt, false, 9, 'center'),
+              mcs('FF444444', alt, false, 9, 'center'),
+              mcs(bfg, bbg, true, 9, 'center')
+            ]
+          );
         });
       });
 
@@ -2928,10 +2838,10 @@ function downloadMeetingExcel(){
           }
         }
       }
-      wsJ['!merges']     = [{s:{r:0,c:0}, e:{r:0,c:mergeEnd}}];
-      wsJ['!cols']       = colWidths;
+      wsJ['!merges']     = [{s:{r:0,c:0}, e:{r:0,c:6}}];
+      wsJ['!cols']       = [{wch:5},{wch:28},{wch:14},{wch:36},{wch:18},{wch:16},{wch:14}];
       wsJ['!rows']       = [{hpt:24},{hpt:4},{hpt:20}];
-      wsJ['!autofilter'] = {ref:filterRef};
+      wsJ['!autofilter'] = {ref:'A3:G3'};
       wsJ['!freeze']     = {xSplit:0, ySplit:3};
       return wsJ;
     }
@@ -2940,7 +2850,7 @@ function downloadMeetingExcel(){
     var wsDDSDSC = buildJobSheet(
       '✅ DD / Short Dispatch / Short Close',
       function(c){ return c.ddJobs.concat(c.sdJobs).concat(c.scJobs); },
-      'FF1A3A1A', 'ddsdsc'
+      'FF1A3A1A'
     );
     XLSX.utils.book_append_sheet(wb2, wsDDSDSC, 'DD-SD-SC');
 
@@ -2948,7 +2858,7 @@ function downloadMeetingExcel(){
     var wsIP = buildJobSheet(
       '⚙️ In Process / Not Started',
       function(c){ return c.inProcessJobs.concat(c.nsJobs); },
-      'FF2A2A4A', 'inprocess'
+      'FF2A2A4A'
     );
     XLSX.utils.book_append_sheet(wb2, wsIP, 'In Process');
 
@@ -2956,7 +2866,7 @@ function downloadMeetingExcel(){
     var wsCancel = buildJobSheet(
       '❌ Cancelled Jobs',
       function(c){ return c.cancelJobs; },
-      'FF4A1010', 'cancelled'
+      'FF4A1010'
     );
     XLSX.utils.book_append_sheet(wb2, wsCancel, 'Cancelled');
 

@@ -730,9 +730,12 @@ function parseScheduleSheet(rows){
   // Excel serial 1 = 1900-01-01. Excel ने 1900 ला चुकीचा leap year मानला,
   // त्यामुळे serial >= 60 साठी extra 1 day correction लागतो.
   function excelSerialToDate(serial){
-    // Valid range: 43831 = 2020-01-01, 73050 = 2099-12-31
-    // Quantities/row numbers are outside this range, so they won't match
-    if(typeof serial !== 'number' || serial < 43831 || serial > 73050) return null;
+    // Valid range: 45292 = 2024-01-01, 46762 = 2027-12-31
+    // IMPORTANT: Range deliberately restricted to near-future dates only.
+    // Qty values like 47000, 50000, 70000 used to fall in the old wide range (43831-73050)
+    // and were misread as dates (e.g. 47000→2028, 70000→2091), corrupting currentDate.
+    // Punching plan dates are always within current planning horizon (2025-2027).
+    if(typeof serial !== 'number' || serial < 45292 || serial > 46762) return null;
     // Excel serial → days since Unix epoch (1970-01-01)
     // Correct offset: 25569 (Excel's 1900-01-01 to 1970-01-01, including its leap year bug)
     var days = serial - 25569;
@@ -796,9 +799,13 @@ function parseScheduleSheet(rows){
     }
 
     // Scan all cells for a date (works for both string dates and Date objects)
-    for(var c = 0; c < row.length; c++){
-      var d = tryDate(row[c]);
-      if(d){ currentDate = d; break; }
+    // IMPORTANT: Only scan for date if this row is NOT a job row (no JCNO in col0/col1).
+    // Job rows contain Qty/CutSheets numbers that can accidentally match date serial range.
+    if(!isJCNO(col0) && !isJCNO(col1)){
+      for(var c = 0; c < row.length; c++){
+        var d = tryDate(row[c]);
+        if(d){ currentDate = d; break; }
+      }
     }
   }
   return map;
@@ -1471,84 +1478,102 @@ function filterMissingCust(){ _filterMissDebounced(); }
 function downloadExcel(){
   if(!D.loaded){ alert('Please upload AIA Track Record first'); return; }
 
-  // SheetJS with full styles support (xlsx.full.min.js supports styles)
   var wb = XLSX.utils.book_new();
+  var NF = '#,##0';
 
-  // Layout: T1=Floor Jobs (cols 0-4), T2=Fold+Missing+Customers stacked (cols 6-19)
-  var T1=0, T2=6, COLS=21;
-
-  var PROC_FG  = {PH:'FF5C3FA0',PASTING:'FFB5541A',SCREEN:'FF0D7377',FOIL:'FFC47A2B','FRONT BAL':'FF2A6E2A',LAMINATION:'FF1A5FA8',VDP:'FFA02020',VR:'FF555555'};
-  var PROC_BG  = {PH:'FFEEEBFA',PASTING:'FFFDE9D9',SCREEN:'FFE0F5F5',FOIL:'FFFDF5E0','FRONT BAL':'FFE8F5E8',LAMINATION:'FFE8F0FB',VDP:'FFFAEAEA',VR:'FFF5F5F5'};
-  var MISS_BG  = {'Job Not Started':'FFFDF0D8',FOIL:'FFFDF5E0',LAMINATION:'FFE8F0FB',PASTING:'FFFDE9D9',PH:'FFEEEBFA',SCREEN:'FFE0F5F5',VDP:'FFFAEAEA','FRONT BAL':'FFE8F5E8','LABLE CUTTING':'FFEBF4FB'};
-
+  var PROC_FG = {PH:'FF5C3FA0',PASTING:'FFB5541A',SCREEN:'FF0D7377',FOIL:'FFC47A2B','FRONT BAL':'FF2A6E2A',LAMINATION:'FF1A5FA8',VDP:'FFA02020',VR:'FF555555'};
+  var PROC_BG = {PH:'FFEEEBFA',PASTING:'FFFDE9D9',SCREEN:'FFE0F5F5',FOIL:'FFFDF5E0','FRONT BAL':'FFE8F5E8',LAMINATION:'FFE8F0FB',VDP:'FFFAEAEA',VR:'FFF5F5F5'};
+  var MISS_BG = {'Job Not Started':'FFFDF0D8',FOIL:'FFFDF5E0',LAMINATION:'FFE8F0FB',PASTING:'FFFDE9D9',PH:'FFEEEBFA',SCREEN:'FFE0F5F5',VDP:'FFFAEAEA','FRONT BAL':'FFE8F5E8','LABLE CUTTING':'FFEBF4FB'};
   var C = {
-    mainTitle:'FF1A1A2E', t1:'FF0F3460', t2:'FF16537E', t3:'FF8B1A1A', t4:'FF1A4D2E',
+    mainTitle:'FF1A1A2E', t1:'FF0F3460', t2:'FF16537E', t3:'FF8B1A1A',
     white:'FFFFFFFF', ltBlue:'FFEBF4FB', ltGrn:'FFF0F7F0',
-    grandBlu:'FFC8DFF0', grandRed:'FFF5C0C0', grandGrn:'FFB8DFC0',
-    navy:'FF0F3460', blue:'FF1A5FA8', amber:'FF8A5200', red:'FFA02020', green:'FF1A4D2E'
+    grandBlu:'FFC8DFF0', grandRed:'FFF5C0C0',
+    navy:'FF0F3460', blue:'FF1A5FA8', amber:'FF8A5200', red:'FFA02020'
   };
+  var lemonTitle='FFB8A000', lemonGrand='FFFFF0A0', lemonBg1='FFFDF6C0', lemonBg2='FFFFF9E0', lemonHdr='FF8B7A00';
 
   function cs(fg,bg,bold,sz,h,nf){
-    var s = {
+    var s={
       font:{name:'Arial',color:{rgb:fg||'FF1A1A2E'},bold:!!bold,sz:sz||9},
       fill:{patternType:'solid',fgColor:{rgb:bg||'FFFFFFFF'}},
-      alignment:{horizontal:h||'left',vertical:'center'},
-      border:{
-        top:{style:'thin',color:{rgb:'FFCCCCCC'}},
-        bottom:{style:'thin',color:{rgb:'FFCCCCCC'}},
-        left:{style:'thin',color:{rgb:'FFCCCCCC'}},
-        right:{style:'thin',color:{rgb:'FFCCCCCC'}}
-      }
+      alignment:{horizontal:h||'left',vertical:'center',wrapText:false},
+      border:{top:{style:'thin',color:{rgb:'FFCCCCCC'}},bottom:{style:'thin',color:{rgb:'FFCCCCCC'}},left:{style:'thin',color:{rgb:'FFCCCCCC'}},right:{style:'thin',color:{rgb:'FFCCCCCC'}}}
     };
     if(nf) s.numFmt=nf;
     return s;
   }
-
   function csMed(fg,bg,bold,sz,h,nf){
     var s=cs(fg,bg,bold,sz,h,nf);
-    var mb={style:'medium',color:{rgb:'FF999999'}};
-    s.border={top:mb,bottom:mb,left:mb,right:mb};
+    s.border={top:{style:'medium',color:{rgb:'FF999999'}},bottom:{style:'medium',color:{rgb:'FF999999'}},left:{style:'medium',color:{rgb:'FF999999'}},right:{style:'medium',color:{rgb:'FF999999'}}};
     return s;
   }
-
-  // Build empty grid — T2 is now tallest: Fold + Missing + Customer all stacked
-  var grid=[], styleGrid=[];
-  var t2Rows = 2+6+1 + 2 + 2+D.missingByProcess.length+1 + 2 + 2+D.missingCust.length+1;
-  var estimatedRows = 3 + Math.max(
-    2+D.floorJobs.reduce(function(a,f){return a+1+(f.subs||[]).length;},0)+1,
-    t2Rows
-  ) + 3;
-  for(var i=0;i<estimatedRows;i++){
-    var r=[],sr=[];
-    for(var j=0;j<COLS;j++){r.push('');sr.push(null);}
-    grid.push(r); styleGrid.push(sr);
-  }
-
-  function set(r,c,v,style){ grid[r][c]=v; styleGrid[r][c]=style; }
-
-  var NF='#,##0';
-
-  // ROW 0: Main title — show filter date range in DD/MM/YYYY to DD/MM/YYYY format
   function fmtDDMMYYYY(d){
-    var dd=String(d.getDate()).padStart(2,'0');
-    var mm=String(d.getMonth()+1).padStart(2,'0');
-    var yyyy=d.getFullYear();
-    return dd+'/'+mm+'/'+yyyy;
+    return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
   }
+
   var xlFrom = D._filterFrom || new Date('2026-01-01');
   var xlTo   = D._filterTo   || new Date();
   var xlDateRange = fmtDDMMYYYY(xlFrom)+' to '+fmtDDMMYYYY(xlTo);
-  set(0,0,'AIA JOB TRACK DASHBOARD  |  '+xlDateRange+'  |  Total Jobs: '+D.totalJobs,
-    cs(C.white,C.mainTitle,true,14,'center'));
 
-  var B=2; // base row for tables
+  // ================================================================
+  // SHEET 1 — AIA REPORT  (image-style layout: side-by-side tables)
+  // Layout:
+  //   Col A-E  (T1=0): Floor Jobs
+  //   Col G-J  (T2=6): Fold & Other  (top-right)
+  //             T2    : Missing by Process (below Fold)
+  //   Row CUST_START onwards, Col A-N: Missing by Customer (full width)
+  // ================================================================
 
-  // ---- TABLE 1: FLOOR JOBS ----
-  set(B,T1,'FLOOR JOBS \u2014 PENDING BY PROCESS & MONTH  ('+xlDateRange+')',cs(C.white,C.t1,true,10,'center'));
-  var h1=['Process / Month','Pending Qty','Tot. Cut SH','Job Count','Status'];
-  h1.forEach(function(h,i){set(B+1,T1+i,h,cs(C.white,C.t1,true,9,'center'));});
+  var T1=0, T2=6;
+  var TOTAL_COLS = 20;
 
-  var r1=B+2,fp=0,fc=0,fjc=0;
+  // --- Pre-calculate row counts so we know how tall the grid must be ---
+  var floorRowCount = D.floorJobs.reduce(function(a,f){return a+1+(f.subs||[]).length;},0)+1; // +1 grand total
+  var foldOrder = ['FOLD','OUTSERT FOLDING','Job Not Started','FRONT BAL','VR'];
+  var stMap={};
+  D.statusBreakdown.forEach(function(x){stMap[x[0]]={cnt:x[1],pqty:x[2]||0,cutsh:x[3]||0};});
+  var foldRows = foldOrder.filter(function(p){return stMap[p]&&stMap[p].cnt;});
+  var foldRowCount = foldRows.length+1; // +1 grand total
+  var missRowCount = D.missingByProcess.length+1; // +1 grand total
+
+  // Right-side height: title+hdr(2) + fold(title+hdr+data) + gap(1) + miss(title+hdr+data)
+  var rightHeight = 2 + foldRowCount + 3 + missRowCount + 2;
+  // Left-side height: title+hdr(2) + floor data
+  var leftHeight  = 2 + floorRowCount;
+
+  var topSectionRows = Math.max(leftHeight, rightHeight) + 1; // +1 gap
+
+  var custProcs = ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+  var custHdr = ['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
+  // Customer section: title(1) + hdr(1) + data + grandtotal(1)
+  var custSectionRows = 2 + D.missingCust.length + 1;
+
+  var totalRows = topSectionRows + custSectionRows + 4;
+
+  // Build empty grid
+  var grid=[], sg=[];
+  for(var i=0;i<totalRows;i++){
+    var row=[], srow=[];
+    for(var j=0;j<TOTAL_COLS;j++){row.push('');srow.push(null);}
+    grid.push(row); sg.push(srow);
+  }
+  function set(r,c,v,style){ if(r<grid.length&&c<TOTAL_COLS){grid[r][c]=v; sg[r][c]=style;} }
+
+  // ---- ROW 0: Main Title ----
+  set(0,0,'AIA JOB TRACK DASHBOARD  |  '+xlDateRange+'  |  Total Jobs: '+D.totalJobs, cs(C.white,C.mainTitle,true,14,'center'));
+
+  var B=2; // tables start row
+
+  // ============================================================
+  // LEFT: FLOOR JOBS  (col T1 = 0)
+  // ============================================================
+  set(B,T1,'FLOOR JOBS — PENDING BY PROCESS & MONTH  ('+xlDateRange+')',cs(C.white,C.t1,true,10,'center'));
+  for(var ci=1;ci<5;ci++) set(B,T1+ci,'',cs(C.white,C.t1,false,10,'center'));
+
+  var flH=['Process / Month','Pending Qty','Tot. Cut SH','Job Count','Status'];
+  flH.forEach(function(h,i){ set(B+1,T1+i,h,cs(C.white,C.t1,true,9,'center')); });
+
+  var r1=B+2, fp=0,fc=0,fjc=0;
   D.floorJobs.forEach(function(f){
     var fg=PROC_FG[f.proc]||'FF1A1A2E', bg=PROC_BG[f.proc]||C.ltBlue;
     set(r1,T1,f.proc,cs(fg,bg,true,9,'left'));
@@ -1556,8 +1581,7 @@ function downloadExcel(){
     set(r1,T1+2,Math.round(f.cutsh||0),cs(fg,bg,true,9,'right',NF));
     set(r1,T1+3,f.cnt,cs(fg,bg,true,9,'right',NF));
     set(r1,T1+4,'In Floor',cs(fg,bg,true,8,'center'));
-    fp+=f.pqty||0; fc+=f.cutsh||0; fjc+=f.cnt;
-    r1++;
+    fp+=f.pqty||0; fc+=f.cutsh||0; fjc+=f.cnt; r1++;
     (f.subs||[]).forEach(function(s){
       set(r1,T1,'   '+s.mo,cs('FF777777',C.white,false,9,'left'));
       set(r1,T1+1,Math.round(s.pqty||0),cs('FF777777',C.white,false,9,'right',NF));
@@ -1572,18 +1596,19 @@ function downloadExcel(){
   set(r1,T1+2,Math.round(fc),csMed(C.navy,C.grandBlu,true,9,'right',NF));
   set(r1,T1+3,fjc,csMed(C.navy,C.grandBlu,true,9,'right',NF));
   set(r1,T1+4,'',csMed(C.navy,C.grandBlu,true,9,'left'));
+  var floorLastRow = r1;
 
-  // ---- TABLE 2: FOLD JOBS ----
-  var foldOrder=['FOLD','OUTSERT FOLDING','Job Not Started','FRONT BAL','VR'];
-  var stMap={};
-  D.statusBreakdown.forEach(function(x){stMap[x[0]]={cnt:x[1],pqty:x[2]||0,cutsh:x[3]||0};});
-
+  // ============================================================
+  // RIGHT-TOP: FOLD & OTHER  (col T2 = 6)
+  // ============================================================
   set(B,T2,'FOLD & OTHER FLOOR PROCESSES',cs(C.white,C.t2,true,10,'center'));
-  ['Process','Pending Qty','Tot. Cut SH','Job Count'].forEach(function(h,i){set(B+1,T2+i,h,cs(C.white,C.t2,true,9,'center'));});
+  for(var ci2=1;ci2<4;ci2++) set(B,T2+ci2,'',cs(C.white,C.t2,false,10,'center'));
+  var fdH=['Process','Pending Qty','Tot. Cut SH','Job Count'];
+  fdH.forEach(function(h,i){ set(B+1,T2+i,h,cs(C.white,C.t2,true,9,'center')); });
 
-  var r2=B+2,f2j=0,f2p=0,f2c=0;
-  foldOrder.forEach(function(proc,idx){
-    var d=stMap[proc]; if(!d||!d.cnt) return;
+  var r2=B+2, f2j=0,f2p=0,f2c=0;
+  foldRows.forEach(function(proc,idx){
+    var d=stMap[proc];
     var bg=idx%2===0?C.ltBlue:C.white;
     set(r2,T2,proc,cs('FF16537E',bg,true,9,'left'));
     set(r2,T2+1,Math.round(d.pqty),cs('FF16537E',bg,false,9,'right',NF));
@@ -1595,13 +1620,18 @@ function downloadExcel(){
   set(r2,T2+1,Math.round(f2p),csMed(C.navy,C.grandBlu,true,9,'right',NF));
   set(r2,T2+2,Math.round(f2c),csMed(C.navy,C.grandBlu,true,9,'right',NF));
   set(r2,T2+3,f2j,csMed(C.navy,C.grandBlu,true,9,'right',NF));
+  var foldLastRow = r2;
 
-  // ---- TABLE 3: MISSING LIST — T2 column madhe Fold khali stack ----
-  var r3=r2+2; // Fold grand total nantara 2 rows gap
-  set(r3,T2,'MISSING LIST \u2014 '+xlDateRange,cs(C.white,C.t3,true,10,'center'));
-  ['Process / Status','Pending Qty','Tot. Cut SH','Job Count','% Share'].forEach(function(h,i){set(r3+1,T2+i,h,cs(C.white,C.t3,true,9,'center'));});
+  // ============================================================
+  // RIGHT-BOTTOM: MISSING BY PROCESS  (col T2 = 6, below Fold)
+  // ============================================================
+  var r3 = foldLastRow + 2;
+  set(r3,T2,'MISSING LIST — '+xlDateRange,cs(C.white,C.t3,true,10,'center'));
+  for(var ci3=1;ci3<5;ci3++) set(r3,T2+ci3,'',cs(C.white,C.t3,false,10,'center'));
+  var msH=['Process / Status','Pending Qty','Tot. Cut SH','Job Count','% Share'];
+  msH.forEach(function(h,i){ set(r3+1,T2+i,h,cs(C.white,C.t3,true,9,'center')); });
 
-  var r3d=r3+2,m3p=0,m3c=0,m3j=0;
+  var r3d=r3+2, m3p=0,m3c=0,m3j=0;
   var totMJ=D.missingByProcess.reduce(function(a,x){return a+x.jobs;},0);
   D.missingByProcess.forEach(function(x){
     var bg=MISS_BG[x.status]||C.ltBlue;
@@ -1619,284 +1649,248 @@ function downloadExcel(){
   set(r3d,T2+3,m3j,csMed('FF8B1A1A',C.grandRed,true,9,'right',NF));
   set(r3d,T2+4,'100%',csMed('FF8B1A1A',C.grandRed,true,9,'center'));
 
-  // ---- TABLE 4: MISSING CUSTOMERS — T2 column madhe Missing List khali stack ----
-  var r4start = r3d + 2; // Missing List grand total nantara 2 rows gap
+  // ============================================================
+  // BOTTOM: MISSING BY CUSTOMER (col 0, full width, below both)
+  // ============================================================
+  var CUST_START = Math.max(floorLastRow, r3d) + 2;
 
-  var lemonHdr  = 'FF8B7A00';
-  var lemonBg1  = 'FFFDF6C0';
-  var lemonBg2  = 'FFFFF9E0';
-  var lemonTitle= 'FFB8A000';
-  var lemonGrand= 'FFFFF0A0';
+  set(CUST_START,0,'MISSING LIST — ALL MISSING JOBS BY CUSTOMER — '+xlDateRange, cs(C.white,lemonTitle,true,11,'center'));
+  for(var ci4=1;ci4<custHdr.length;ci4++) set(CUST_START,ci4,'',cs(C.white,lemonTitle,false,11,'center'));
+  custHdr.forEach(function(h,i){ set(CUST_START+1,i,h,cs(C.white,lemonTitle,true,9,'center')); });
 
-  var custProcs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
-  var custHeaders=['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
-
-  set(r4start,T2,'MISSING LIST \u2014 ALL MISSING JOBS BY CUSTOMER \u2014 '+xlDateRange,cs(C.white,lemonTitle,true,10,'center'));
-  custHeaders.forEach(function(h,i){set(r4start+1,T2+i,h,cs(C.white,lemonTitle,true,9,'center'));});
-
-  var r4=r4start+2,t4p=0,t4c=0,t4j=0,t4ns=0;
-  var procGrandTotals={}; custProcs.forEach(function(p){procGrandTotals[p]=0;});
+  var r4=CUST_START+2, t4p=0,t4c=0,t4j=0,t4ns=0;
+  var procGrand={}; custProcs.forEach(function(p){procGrand[p]=0;});
   D.missingCust.forEach(function(cust,i){
     var bg=i%2===0?lemonBg1:lemonBg2;
-    set(r4,T2,i+1,cs('FF555500',bg,false,9,'center'));
-    set(r4,T2+1,cust.name,cs('FF333300',bg,false,8,'left'));
-    set(r4,T2+2,Math.round(cust.pqty),cs('FF555500',bg,false,9,'right',NF));
-    set(r4,T2+3,Math.round(cust.cutsh),cs('FF555500',bg,false,9,'right',NF));
-    set(r4,T2+4,cust.jobs,cs('FF0F3460',bg,true,9,'right',NF));
-    set(r4,T2+5,cust.nsJobs||0,cs('FF8A5200',bg,false,9,'right',NF));
+    set(r4,0,i+1,cs('FF555500',bg,false,9,'center'));
+    set(r4,1,cust.name,cs('FF333300',bg,false,9,'left'));
+    set(r4,2,Math.round(cust.pqty),cs('FF555500',bg,false,9,'right',NF));
+    set(r4,3,Math.round(cust.cutsh),cs('FF555500',bg,false,9,'right',NF));
+    set(r4,4,cust.jobs,cs('FF0F3460',bg,true,9,'right',NF));
+    set(r4,5,cust.nsJobs||0,cs('FF8A5200',bg,false,9,'right',NF));
     custProcs.forEach(function(p,pi){
       var v=(cust.proc&&cust.proc[p])||0;
-      set(r4,T2+6+pi,v,cs('FF555500',bg,false,9,'right',NF));
-      procGrandTotals[p]+=v;
+      set(r4,6+pi,v,cs('FF555500',bg,false,9,'right',NF));
+      procGrand[p]+=v;
     });
     t4p+=cust.pqty; t4c+=cust.cutsh; t4j+=cust.jobs; t4ns+=(cust.nsJobs||0); r4++;
   });
-  set(r4,T2,'',csMed(lemonHdr,lemonGrand,true,9,'left'));
-  set(r4,T2+1,'GRAND TOTAL',csMed(lemonHdr,lemonGrand,true,9,'left'));
-  set(r4,T2+2,Math.round(t4p),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
-  set(r4,T2+3,Math.round(t4c),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
-  set(r4,T2+4,t4j,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
-  set(r4,T2+5,t4ns,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,0,'',csMed(lemonHdr,lemonGrand,true,9,'left'));
+  set(r4,1,'GRAND TOTAL',csMed(lemonHdr,lemonGrand,true,9,'left'));
+  set(r4,2,Math.round(t4p),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,3,Math.round(t4c),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,4,t4j,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  set(r4,5,t4ns,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
   custProcs.forEach(function(p,pi){
-    set(r4,T2+6+pi,procGrandTotals[p]||0,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+    set(r4,6+pi,procGrand[p]||0,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
   });
 
-  // ---- BUILD WORKSHEET ----
-  var ws = XLSX.utils.aoa_to_sheet(grid);
+  // ---- Build worksheet ----
+  var ws=XLSX.utils.aoa_to_sheet(grid);
 
-  // Apply styles cell by cell
-  for(var ri=0;ri<styleGrid.length;ri++){
-    for(var ci=0;ci<styleGrid[ri].length;ci++){
-      if(styleGrid[ri][ci]){
+  // Apply styles
+  for(var ri=0;ri<sg.length;ri++){
+    for(var ci=0;ci<sg[ri].length;ci++){
+      if(sg[ri][ci]){
         var addr=XLSX.utils.encode_cell({r:ri,c:ci});
         if(!ws[addr]) ws[addr]={t:'z',v:''};
-        ws[addr].s=styleGrid[ri][ci];
+        ws[addr].s=sg[ri][ci];
       }
     }
   }
 
   // Merges
   ws['!merges']=[
-    {s:{r:0,c:0},e:{r:0,c:COLS-1}},              // main title
-    {s:{r:B,c:T1},e:{r:B,c:T1+4}},                // T1 title — Floor Jobs
-    {s:{r:B,c:T2},e:{r:B,c:T2+4}},                // T2 title — Fold
-    {s:{r:r3,c:T2},e:{r:r3,c:T2+4}},              // Missing List title
-    {s:{r:r4start,c:T2},e:{r:r4start,c:T2+13}}    // Customer table title (14 cols)
+    {s:{r:0,c:0},e:{r:0,c:TOTAL_COLS-1}},          // main title full width
+    {s:{r:B,c:T1},e:{r:B,c:T1+4}},                  // Floor Jobs title
+    {s:{r:B,c:T2},e:{r:B,c:T2+3}},                  // Fold title
+    {s:{r:r3,c:T2},e:{r:r3,c:T2+4}},                // Missing Process title
+    {s:{r:CUST_START,c:0},e:{r:CUST_START,c:custHdr.length-1}} // Cust title full width
   ];
 
+  // Column widths: A-E (Floor), F (gap), G-K (Right), rest for cust process cols
   ws['!cols']=[
-    {wch:19},{wch:13},{wch:12},{wch:10},{wch:9},        // T1: Floor Jobs (5 cols)
-    {wch:1.5},                                           // gap
-    {wch:4},{wch:32},{wch:13},{wch:12},{wch:10},{wch:10}, // T2: #/Process, Name, PendQty, CutSH, TotalJobs/JobCnt, NS/%
-    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:8},{wch:10} // process cols: PASTING,PH,SCREEN,FOIL,LAM,VDP,VR,FBAL
+    {wch:22},{wch:13},{wch:12},{wch:10},{wch:9},   // A-E Floor Jobs
+    {wch:1.5},                                      // F gap
+    {wch:22},{wch:13},{wch:12},{wch:10},{wch:9},   // G-K Right tables (5 cols)
+    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:8},{wch:10},{wch:2},{wch:2} // extra
   ];
 
-  // Row heights
   ws['!rows']=[];
-  ws['!rows'][0]={hpt:30};
-  ws['!rows'][1]={hpt:5};
+  ws['!rows'][0]={hpt:28};
   ws['!rows'][B]={hpt:20};
-  ws['!rows'][B+1]={hpt:20};
+  ws['!rows'][B+1]={hpt:18};
+  ws['!rows'][CUST_START]={hpt:22};
+  ws['!rows'][CUST_START+1]={hpt:18};
 
-  // AutoFilter on full header row — covers all 21 columns (A to U)
-  ws['!autofilter'] = {ref: 'A4:U4'};
+  // ---- Multiple named tables (autofilter per table) ----
+  // Excel only supports ONE !autofilter per sheet, so we use Named Tables (ws['!tables'])
+  // SheetJS supports !tables for xlsx-js-style
+  // Floor Jobs header row B+1 (0-indexed), cols 0-4
+  // Fold header row B+1 (0-indexed), cols 6-9
+  // Missing Process header row r3+1, cols 6-10
+  // Customer header row CUST_START+1, cols 0 to custHdr.length-1
+
+  function colLetter(n){ var s=''; n++; while(n>0){s=String.fromCharCode(64+(n%26||26))+s; n=Math.floor((n-1)/26);} return s; }
+
+
+
+  // Excel supports only one autofilter per sheet.
+  // Apply it to the Customer Summary table (most useful for filtering).
+  ws['!autofilter'] = {ref: colLetter(0)+String(CUST_START+2)+':'+colLetter(custHdr.length-1)+String(CUST_START+2)};
+  ws['!freeze']={xSplit:0,ySplit:B+2};
   XLSX.utils.book_append_sheet(wb,ws,'AIA Report');
 
-  // ---- SUMMARY DASHBOARD SHEET ----
-  var wsSum = XLSX.utils.aoa_to_sheet([]);
-  var sumGrid=[], sumStyle=[];
-  for(var si=0;si<40;si++){ sumGrid.push([]); sumStyle.push([]); for(var sj=0;sj<8;sj++){sumGrid[si].push('');sumStyle[si].push(null);} }
-  function sset(r,c,v,st){ sumGrid[r][c]=v; sumStyle[r][c]=st; }
-
-  // Title
-  sset(0,0,'AIA DASHBOARD SUMMARY  |  '+xlDateRange+'  |  Generated: '+fmtDDMMYYYY(new Date()),
-    cs(C.white,C.mainTitle,true,13,'center'));
-
-  // KPI block
-  var kpiData=[
-    ['Total Jobs',D.totalJobs,C.blue,'FF1A5FA8'],
-    ['Dispatched (DD)',D.dd,'FF2A6E2A','FF2A6E2A'],
-    ['Not Started',D.ns,'FFC47A00','FFC47A00'],
-    ['Cancelled',D.cancel,C.red,C.red],
-    ['Missing Jobs',D.missingCust.reduce(function(a,b){return a+b.jobs;},0),'FF8B1A1A','FF8B1A1A'],
-    ['Floor Jobs',D.floorJobs.reduce(function(a,f){return a+f.cnt;},0),'FF5C3FA0','FF5C3FA0']
-  ];
-  sset(2,0,'KEY METRICS',cs(C.white,C.t1,true,10,'center'));
-  kpiData.forEach(function(k,i){
-    var col=i;
-    sset(3,col,k[0],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,9,'center'));
-    sset(4,col,k[1],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,16,'center'));
-  });
-
-  // Monthly summary
-  sset(6,0,'MONTHLY BREAKDOWN',cs(C.white,C.t1,true,10,'center'));
-  ['Month','Total','DD','Not Started','Cancelled'].forEach(function(h,i){
-    sset(7,i,h,cs(C.white,C.t1,true,9,'center'));
-  });
-  D.monthly.forEach(function(m,i){
-    var bg=i%2===0?C.ltBlue:C.white;
-    sset(8+i,0,m.month,cs('FF1A1A2E',bg,false,9,'left'));
-    sset(8+i,1,m.total,cs('FF1A1A2E',bg,false,9,'right',NF));
-    sset(8+i,2,m.dd,cs('FF2A6E2A',bg,false,9,'right',NF));
-    sset(8+i,3,m.ns,cs('FFC47A00',bg,false,9,'right',NF));
-    sset(8+i,4,m.cancel,cs(C.red,bg,false,9,'right',NF));
-  });
-
-  // Aging summary
-  var agingBuckets={'0-7':0,'8-15':0,'16-30':0,'30+':0};
-  D.agingRows.forEach(function(r){ agingBuckets[r.bucket]=(agingBuckets[r.bucket]||0)+1; });
-  var agRow=8+D.monthly.length+2;
-  sset(agRow,0,'AGING SUMMARY',cs(C.white,'FF8B1A1A',true,10,'center'));
-  [['0-7 Days','FF2A6E2A'],['8-15 Days','FFC47A00'],['16-30 Days','FFB5541A'],['30+ Days','FFA02020']].forEach(function(a,i){
-    sset(agRow+1,i,a[0],cs(C.white,a[1],true,9,'center'));
-    var bk=a[0].split(' ')[0];
-    sset(agRow+2,i,agingBuckets[bk]||0,cs(a[1],C.white,true,14,'center',NF));
-  });
-
-  wsSum = XLSX.utils.aoa_to_sheet(sumGrid);
-  for(var ri2=0;ri2<sumStyle.length;ri2++){
-    for(var ci2=0;ci2<sumStyle[ri2].length;ci2++){
-      if(sumStyle[ri2][ci2]){
-        var addr2=XLSX.utils.encode_cell({r:ri2,c:ci2});
-        if(!wsSum[addr2]) wsSum[addr2]={t:'z',v:''};
-        wsSum[addr2].s=sumStyle[ri2][ci2];
+  // ================================================================
+  // SHEET 2 — SUMMARY
+  // ================================================================
+  (function(){
+    var sumGrid=[], sumStyle=[];
+    for(var si=0;si<40;si++){ sumGrid.push([]); sumStyle.push([]); for(var sj=0;sj<8;sj++){sumGrid[si].push('');sumStyle[si].push(null);} }
+    function sset(r,c,v,st){ sumGrid[r][c]=v; sumStyle[r][c]=st; }
+    sset(0,0,'AIA DASHBOARD SUMMARY  |  '+xlDateRange+'  |  Generated: '+fmtDDMMYYYY(new Date()),cs(C.white,C.mainTitle,true,13,'center'));
+    var kpiData=[
+      ['Total Jobs',D.totalJobs,C.blue,'FF1A5FA8'],
+      ['Dispatched (DD)',D.dd,'FF2A6E2A','FF2A6E2A'],
+      ['Not Started',D.ns,'FFC47A00','FFC47A00'],
+      ['Cancelled',D.cancel,C.red,C.red],
+      ['Missing Jobs',D.missingCust.reduce(function(a,b){return a+b.jobs;},0),'FF8B1A1A','FF8B1A1A'],
+      ['Floor Jobs',D.floorJobs.reduce(function(a,f){return a+f.cnt;},0),'FF5C3FA0','FF5C3FA0']
+    ];
+    sset(2,0,'KEY METRICS',cs(C.white,C.t1,true,10,'center'));
+    kpiData.forEach(function(k,i){
+      sset(3,i,k[0],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,9,'center'));
+      sset(4,i,k[1],cs(k[3],k[2]==='FF1A5FA8'?C.ltBlue:k[2]==='FF2A6E2A'?C.ltGrn:'FFFAEAEA',true,16,'center'));
+    });
+    sset(6,0,'MONTHLY BREAKDOWN',cs(C.white,C.t1,true,10,'center'));
+    ['Month','Total','DD','Not Started','Cancelled'].forEach(function(h,i){ sset(7,i,h,cs(C.white,C.t1,true,9,'center')); });
+    D.monthly.forEach(function(m,i){
+      var bg=i%2===0?C.ltBlue:C.white;
+      sset(8+i,0,m.month,cs('FF1A1A2E',bg,false,9,'left'));
+      sset(8+i,1,m.total,cs('FF1A1A2E',bg,false,9,'right',NF));
+      sset(8+i,2,m.dd,cs('FF2A6E2A',bg,false,9,'right',NF));
+      sset(8+i,3,m.ns,cs('FFC47A00',bg,false,9,'right',NF));
+      sset(8+i,4,m.cancel,cs(C.red,bg,false,9,'right',NF));
+    });
+    var agingBuckets={'0-7':0,'8-15':0,'16-30':0,'30+':0};
+    D.agingRows.forEach(function(r){ agingBuckets[r.bucket]=(agingBuckets[r.bucket]||0)+1; });
+    var agRow=8+D.monthly.length+2;
+    sset(agRow,0,'AGING SUMMARY',cs(C.white,'FF8B1A1A',true,10,'center'));
+    [['0-7 Days','FF2A6E2A'],['8-15 Days','FFC47A00'],['16-30 Days','FFB5541A'],['30+ Days','FFA02020']].forEach(function(a,i){
+      sset(agRow+1,i,a[0],cs(C.white,a[1],true,9,'center'));
+      sset(agRow+2,i,agingBuckets[a[0].split(' ')[0]]||0,cs(a[1],C.white,true,14,'center',NF));
+    });
+    var wsSum=XLSX.utils.aoa_to_sheet(sumGrid);
+    for(var ri2=0;ri2<sumStyle.length;ri2++){
+      for(var ci2=0;ci2<sumStyle[ri2].length;ci2++){
+        if(sumStyle[ri2][ci2]){var a2=XLSX.utils.encode_cell({r:ri2,c:ci2});if(!wsSum[a2])wsSum[a2]={t:'z',v:''};wsSum[a2].s=sumStyle[ri2][ci2];}
       }
     }
-  }
-  wsSum['!merges']=[
-    {s:{r:0,c:0},e:{r:0,c:7}},
-    {s:{r:2,c:0},e:{r:2,c:5}},
-    {s:{r:6,c:0},e:{r:6,c:4}},
-    {s:{r:agRow,c:0},e:{r:agRow,c:3}}
-  ];
-  wsSum['!cols']=[{wch:22},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}];
-  // Freeze top row
-  wsSum['!freeze']={xSplit:0,ySplit:1};
-  // AutoFilter on Summary sheet — monthly breakdown header, all cols A:H
-  wsSum['!autofilter'] = {ref: 'A8:H8'};
-  XLSX.utils.book_append_sheet(wb,wsSum,'Summary');
+    wsSum['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:2,c:0},e:{r:2,c:5}},{s:{r:6,c:0},e:{r:6,c:4}},{s:{r:agRow,c:0},e:{r:agRow,c:3}}];
+    wsSum['!cols']=[{wch:22},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}];
+    wsSum['!freeze']={xSplit:0,ySplit:1};
+    wsSum['!autofilter']={ref:'A8:E'+(8+D.monthly.length)};
+    XLSX.utils.book_append_sheet(wb,wsSum,'Summary');
+  })();
 
-  // Freeze header on main sheet too
-  ws['!freeze']={xSplit:0,ySplit:2};
+  // ================================================================
+  // SHEET 3 — AGING REPORT
+  // ================================================================
+  (function(){
+    var agHeaders=['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','Print Date','Punch Date','Paste Date','Bucket'];
+    var agBucketFG={'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
+    var agBucketBG={'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
+    var agTodayD=new Date(); agTodayD.setHours(0,0,0,0);
+    function agIsOverdue(dStr){
+      if(!dStr) return false;
+      var pts=dStr.split('/'); if(pts.length<3) return false;
+      var d=new Date(+pts[2],+pts[1]-1,+pts[0]);
+      return !isNaN(d)&&d<agTodayD;
+    }
+    var agGrid=[], agStyle=[];
+    function addAg(cols,sts){agGrid.push(cols);agStyle.push(sts);}
+    var agTitle='AGING REPORT — PENDING JOBS  |  '+xlDateRange+'  |  Total: '+D.agingRows.length+' jobs';
+    addAg([agTitle].concat(new Array(agHeaders.length-1).fill('')),
+          [cs(C.white,C.mainTitle,true,13,'center')].concat(new Array(agHeaders.length-1).fill(cs(C.white,C.mainTitle,false,13,'center'))));
+    var bkSumData={'0-7':0,'8-15':0,'16-30':0,'30+':0};
+    D.agingRows.forEach(function(r){bkSumData[r.bucket]=(bkSumData[r.bucket]||0)+1;});
+    var bkRow=new Array(agHeaders.length).fill('');
+    bkRow[0]='Bucket:'; bkRow[1]='0-7 Days: '+bkSumData['0-7']; bkRow[2]='8-15 Days: '+bkSumData['8-15']; bkRow[3]='16-30 Days: '+bkSumData['16-30']; bkRow[4]='30+ Days: '+bkSumData['30+'];
+    addAg(bkRow,new Array(agHeaders.length).fill(cs('FF555555','FFF5F5F5',false,9,'left')));
+    addAg(agHeaders,agHeaders.map(function(){return cs(C.white,'FF1A1A2E',true,10,'center');}));
+    // Group aging rows by customer (ascending), dedupe by jcno
+    var agSeenJcno={};
+    var agCustMap={}, agCustOrder=[];
+    D.agingRows.forEach(function(r){
+      if(agSeenJcno[r.jcno]) return; agSeenJcno[r.jcno]=1;
+      var cn=r.cust||'Unknown';
+      if(!agCustMap[cn]){ agCustMap[cn]=[]; agCustOrder.push(cn); }
+      agCustMap[cn].push(r);
+    });
+    agCustOrder.sort(function(a,b){ return a.localeCompare(b); });
 
-  // ---- AGING REPORT SHEET ----
-  var agHeaders = ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','Print Date','Punch Date','Paste Date','Bucket'];
-  var agBucketFG = {'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
-  var agBucketBG = {'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
+    var agRowNum=0;
+    var agMerges=[{s:{r:0,c:0},e:{r:0,c:agHeaders.length-1}},{s:{r:1,c:0},e:{r:1,c:agHeaders.length-1}}];
 
-  var agGrid=[], agStyle=[];
-  // Title row
-  agGrid.push([]); agStyle.push([]);
-  var agTitle='⏳ AGING REPORT — PENDING JOBS  |  '+xlDateRange+'  |  Total: '+D.agingRows.length+' jobs';
-  for(var ac=0;ac<agHeaders.length;ac++){ agGrid[0].push(ac===0?agTitle:''); agStyle[0].push(ac===0?cs(C.white,C.mainTitle,true,13,'center'):cs(C.white,C.mainTitle,false,13,'center')); }
+    agCustOrder.forEach(function(custName){
+      var custRows=agCustMap[custName];
+      var custTotalPqty=0, custTotalCutsh=0;
 
-  // Bucket summary row
-  var agBktSumRow=[];agStyle.push([]);
-  var bkSumData={'0-7':0,'8-15':0,'16-30':0,'30+':0};
-  D.agingRows.forEach(function(r){bkSumData[r.bucket]=(bkSumData[r.bucket]||0)+1;});
-  for(var ac2=0;ac2<agHeaders.length;ac2++){agBktSumRow.push('');}
-  agBktSumRow[0]='Bucket:'; agBktSumRow[1]='0-7 Days: '+bkSumData['0-7']; agBktSumRow[2]='8-15 Days: '+bkSumData['8-15']; agBktSumRow[3]='16-30 Days: '+bkSumData['16-30']; agBktSumRow[4]='30+ Days: '+bkSumData['30+'];
-  agGrid.push(agBktSumRow);
-  for(var ac3=0;ac3<agHeaders.length;ac3++){agStyle[1].push(cs('FF555555','FFF5F5F5',false,9,'left'));}
+      custRows.forEach(function(r){
+        agRowNum++;
+        var bfg=agBucketFG[r.bucket]||'FF333333', bbg=agBucketBG[r.bucket]||'FFFFFFFF';
+        var altBg=agRowNum%2===0?'FFF0F4FF':'FFFFFFFF';
+        var jcno=String(r.jcno).trim();
+        var printD=D.schedPrinting[jcno]||'', punchD=D.schedPunching[jcno]||'', pasteD=D.schedPasting[jcno]||'';
+        var pqtyVal=Math.round(r.pqty||0), cutshVal=Math.round(r.cutsh||0);
+        custTotalPqty+=pqtyVal; custTotalCutsh+=cutshVal;
+        addAg(
+          [agRowNum,r.jcno,r.jobName||'',r.cust,r.status,pqtyVal,cutshVal,r.revDate?fmtDate(r.revDate):'',r.days,printD||'—',punchD||'—',pasteD||'—',r.bucket+' days'],
+          [cs('FF888888',altBg,false,9,'center'),cs('FF1A5FA8',altBg,true,9,'left'),cs('FF1A1A2E',altBg,false,9,'left'),cs('FF1A1A2E',altBg,false,9,'left'),cs(bfg,bbg,true,9,'center'),cs('FF0F3460',altBg,false,9,'right','#,##0'),cs('FF0F3460',altBg,false,9,'right','#,##0'),cs('FF444444',altBg,false,9,'center'),cs(bfg,bbg,true,11,'center'),
+           agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
+           agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
+           agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
+           cs(bfg,bbg,true,9,'center')]
+        );
+      });
 
-  // Header row
-  var agHdrRow=[]; var agHdrStyle=[];
-  agHeaders.forEach(function(h){ agHdrRow.push(h); agHdrStyle.push(cs(C.white,'FF1A1A2E',true,10,'center')); });
-  agGrid.push(agHdrRow); agStyle.push(agHdrStyle);
+      // Customer subtotal row — merge cols 0-4 for label, show pqty & cutsh totals
+      var subRowIdx = agGrid.length; // 0-based index of the row we're about to add
+      addAg(
+        ['','','','','Subtotal → '+custName+' ('+custRows.length+' jobs)',custTotalPqty,custTotalCutsh,'','','','','',''],
+        [null,null,null,null,
+         cs('FF0F3460','FFD6E4F0',true,9,'right'),
+         cs('FF0F3460','FFD6E4F0',true,10,'right','#,##0'),
+         cs('FF0F3460','FFD6E4F0',true,10,'right','#,##0'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center'),
+         cs('FF0F3460','FFD6E4F0',false,9,'center')]
+      );
+      // Merge cols A-E for the subtotal label
+      agMerges.push({s:{r:subRowIdx,c:0},e:{r:subRowIdx,c:4}});
 
-  // isOverdue helper — OUTSIDE the loop to avoid JS strict mode error
-  var agTodayD = new Date(); agTodayD.setHours(0,0,0,0);
-  function agIsOverdue(dStr){
-    if(!dStr) return false;
-    var pts=dStr.split('/');
-    if(pts.length<3) return false;
-    var d=new Date(+pts[2], +pts[1]-1, +pts[0]);
-    return !isNaN(d) && d < agTodayD;
-  }
+      // Blank spacer row between customers
+      addAg(new Array(agHeaders.length).fill(''), new Array(agHeaders.length).fill(null));
+    });
 
-  // Data rows
-  var agSeen={}, agRowNum=0;
-  D.agingRows.forEach(function(r){
-    if(agSeen[r.jcno]) return; agSeen[r.jcno]=1; agRowNum++;
-    var bfg=agBucketFG[r.bucket]||'FF333333';
-    var bbg=agBucketBG[r.bucket]||'FFFFFFFF';
-    var altBg = (agRowNum%2===0) ? 'FFF0F4FF' : 'FFFFFFFF';
-    var jcno=String(r.jcno).trim();
-    var printD=D.schedPrinting[jcno]||'';
-    var punchD=D.schedPunching[jcno]||'';
-    var pasteD=D.schedPasting[jcno]||'';
-    var row=[
-      agRowNum,
-      r.jcno,
-      r.jobName||'',
-      r.cust,
-      r.status,
-      Math.round(r.pqty||0),
-      Math.round(r.cutsh||0),
-      r.revDate?fmtDate(r.revDate):'',
-      r.days,
-      printD||'—',
-      punchD||'—',
-      pasteD||'—',
-      r.bucket+' days'
-    ];
-    var rowStyle=[
-      cs('FF888888',altBg,false,9,'center'),
-      cs('FF1A5FA8',altBg,true,9,'left'),
-      cs('FF1A1A2E',altBg,false,9,'left'),
-      cs('FF1A1A2E',altBg,false,9,'left'),
-      cs(bfg,bbg,true,9,'center'),
-      cs('FF0F3460',altBg,false,9,'right','#,##0'),
-      cs('FF0F3460',altBg,false,9,'right','#,##0'),
-      cs('FF444444',altBg,false,9,'center'),
-      cs(bfg,bbg,true,11,'center'),
-      agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
-      agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
-      agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
-      cs(bfg,bbg,true,9,'center')
-    ];
-    agGrid.push(row); agStyle.push(rowStyle);
-  });
-
-  var wsAging = XLSX.utils.aoa_to_sheet(agGrid);
-
-  // Apply styles cell by cell
-  for(var ari=0;ari<agStyle.length;ari++){
-    for(var aci=0;aci<agStyle[ari].length;aci++){
-      if(agStyle[ari][aci]){
-        var aAddr=XLSX.utils.encode_cell({r:ari,c:aci});
-        if(!wsAging[aAddr]) wsAging[aAddr]={t:'z',v:''};
-        wsAging[aAddr].s=agStyle[ari][aci];
+    var wsAging=XLSX.utils.aoa_to_sheet(agGrid);
+    for(var ari=0;ari<agStyle.length;ari++){
+      for(var aci=0;aci<agStyle[ari].length;aci++){
+        if(agStyle[ari][aci]){var aAddr=XLSX.utils.encode_cell({r:ari,c:aci});if(!wsAging[aAddr])wsAging[aAddr]={t:'z',v:''};wsAging[aAddr].s=agStyle[ari][aci];}
       }
     }
-  }
+    wsAging['!merges']=agMerges;
+    wsAging['!cols']=[{wch:5},{wch:15},{wch:34},{wch:26},{wch:18},{wch:13},{wch:12},{wch:16},{wch:13},{wch:14},{wch:14},{wch:14},{wch:13}];
+    var agRH=[{hpt:30},{hpt:18},{hpt:22}]; for(var arh=0;arh<agGrid.length-3;arh++) agRH.push({hpt:16});
+    wsAging['!rows']=agRH;
+    wsAging['!freeze']={xSplit:0,ySplit:3};
+    wsAging['!autofilter']={ref:'A3:M'+(agGrid.length)};
+    XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
+  })();
 
-  // Merges — title row spans all cols, summary row spans all cols
-  wsAging['!merges']=[
-    {s:{r:0,c:0},e:{r:0,c:agHeaders.length-1}},
-    {s:{r:1,c:0},e:{r:1,c:agHeaders.length-1}}
-  ];
-
-  // Column widths
-  wsAging['!cols']=[
-    {wch:5},{wch:15},{wch:34},{wch:26},{wch:18},
-    {wch:13},{wch:12},{wch:16},{wch:13},
-    {wch:14},{wch:14},{wch:14},{wch:13}
-  ];
-
-  // Row heights
-  var agRH=[{hpt:30},{hpt:18},{hpt:22}];
-  for(var arh=0;arh<agRowNum;arh++) agRH.push({hpt:16});
-  wsAging['!rows']=agRH;
-
-  // Freeze top 3 rows (title + summary + header)
-  wsAging['!freeze']={xSplit:0,ySplit:3};
-
-  // AutoFilter on Aging Report header row (row index 2 = row 3 in Excel), all 13 cols A:M
-  wsAging['!autofilter'] = {ref: 'A3:M3'};
-  XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
-
-  var today=new Date();
   var fromStr=fmtDDMMYYYY(xlFrom).replace(/\//g,'-');
   var toStr=fmtDDMMYYYY(xlTo).replace(/\//g,'-');
   var fname='AIA_Report_'+fromStr+'_to_'+toStr+'.xlsx';
@@ -2663,7 +2657,7 @@ function downloadMeetingExcel(){
     ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:8}}];
     ws['!cols']   = [{wch:5},{wch:28},{wch:14},{wch:34},{wch:14},{wch:16},{wch:16},{wch:18},{wch:16}];
     ws['!rows']   = [{hpt:24},{hpt:4},{hpt:20}];
-    ws['!autofilter'] = {ref:'A3:I3'};
+    ws['!autofilter'] = {ref:'A3:I'+(rows.length)};
     ws['!freeze']     = {xSplit:0, ySplit:3};
 
     XLSX.utils.book_append_sheet(wb2, ws, 'Job Detail');
@@ -2774,7 +2768,7 @@ function downloadMeetingExcel(){
     wsSumSheet['!cols']    = [{wch:4},{wch:28},{wch:9},{wch:9},{wch:15},{wch:13},{wch:12},{wch:12},
                               {wch:12},{wch:12},{wch:10},{wch:12},{wch:11},{wch:11},{wch:12}];
     wsSumSheet['!rows']    = [{hpt:24},{hpt:4},{hpt:20}];
-    wsSumSheet['!autofilter'] = {ref:'A3:O3'};
+    wsSumSheet['!autofilter'] = {ref:'A3:O'+(sumRows.length)};
     wsSumSheet['!freeze']     = {xSplit:0, ySplit:3};
     XLSX.utils.book_append_sheet(wb2, wsSumSheet, 'Customer Summary');
 
@@ -2841,7 +2835,7 @@ function downloadMeetingExcel(){
       wsJ['!merges']     = [{s:{r:0,c:0}, e:{r:0,c:6}}];
       wsJ['!cols']       = [{wch:5},{wch:28},{wch:14},{wch:36},{wch:18},{wch:16},{wch:14}];
       wsJ['!rows']       = [{hpt:24},{hpt:4},{hpt:20}];
-      wsJ['!autofilter'] = {ref:'A3:G3'};
+      wsJ['!autofilter'] = {ref:'A3:G'+(jRows.length)};
       wsJ['!freeze']     = {xSplit:0, ySplit:3};
       return wsJ;
     }

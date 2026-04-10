@@ -529,6 +529,41 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
     <div id="meeting-summary-table-wrap" style="padding:14px 14px 0 14px">
       <div class="empty" style="padding:20px 0"><p>Upload data to view meeting summary</p></div>
     </div>
+
+    <!-- HEALTH PIE CHARTS -->
+    <div id="meeting-charts-wrap" style="display:none;padding:14px 14px 0 14px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">📊 Job Health Distribution</span>
+        <span id="meeting-chart-subtitle" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <!-- Doughnut: Delay Bucket Distribution -->
+        <div class="chart-box" style="position:relative">
+          <h3>⏱️ Delay Bucket Distribution — % of All Jobs</h3>
+          <div style="position:relative;max-height:280px;display:flex;align-items:center;justify-content:center">
+            <canvas id="meeting-pie-delay" style="max-height:260px"></canvas>
+          </div>
+          <div id="meeting-pie-delay-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-10%);text-align:center;pointer-events:none">
+            <div id="meeting-pie-total-num" style="font-size:22px;font-weight:800;color:var(--text)">—</div>
+            <div style="font-size:10px;color:var(--text2);font-weight:600">Total Jobs</div>
+          </div>
+        </div>
+        <!-- Doughnut: Job Status Distribution -->
+        <div class="chart-box" style="position:relative">
+          <h3>📋 Job Status Distribution — % of All Jobs</h3>
+          <div style="position:relative;max-height:280px;display:flex;align-items:center;justify-content:center">
+            <canvas id="meeting-pie-status" style="max-height:260px"></canvas>
+          </div>
+          <div id="meeting-pie-status-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-10%);text-align:center;pointer-events:none">
+            <div id="meeting-pie-active-num" style="font-size:22px;font-weight:800;color:var(--text)">—</div>
+            <div style="font-size:10px;color:var(--text2);font-weight:600">Active Jobs</div>
+          </div>
+        </div>
+      </div>
+      <!-- Summary stats row below charts -->
+      <div id="meeting-health-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:14px"></div>
+    </div>
+
     <!-- DETAILED JOB LIST -->
     <div id="meeting-summary-wrap" style="padding:14px">
     </div>
@@ -2437,7 +2472,198 @@ function renderMeetingSummary(){
     +'</tr>';
 
   sumHtml += '</tbody></table></div>';
+
+  // ===================== % SUMMARY TABLE =====================
+  sumHtml += '<div style="margin-top:18px;margin-bottom:4px">'
+    +'<div style="background:#1a1a2e;color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:11px;font-weight:700;letter-spacing:.05em">📊 Customer Wise — Job % Breakdown</div>'
+    +'<div style="overflow-x:auto">'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead>'
+    +'<tr style="background:#1a1a2e;color:#fff">'
+    +'<th style="padding:8px 12px;text-align:left;white-space:nowrap;font-size:10px;border-right:2px solid #2a2a4a">Customer</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;border-right:2px solid #2a2a4a">Total</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#1a3a1a">✅ DD %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#1a3a1a">📦 S.Dispatch %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#1a3a1a;border-right:2px solid #2a2a4a">🔒 S.Close %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#1a3a6a">⬆ Pre %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#1a4a2a">✅ On Track %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#4a3000">👍 Okay %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#4a3800">⚠️ Mid %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#5a2800">🔶 Concern %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#6a1010">🔴 Serious %</th>'
+    +'<th style="padding:8px 10px;text-align:center;font-size:10px;white-space:nowrap;background:#3d0000">🚨 Action %</th>'
+    +'</tr></thead><tbody>';
+
+  function pctCell(count, total, fg, bg){
+    if(!count || count===0) return '<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;color:#ccc;font-size:11px">—</td>';
+    var p = total>0 ? (count/total*100).toFixed(1) : '0.0';
+    return '<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:700;color:'+fg+';background:'+bg+';font-size:11px">'+p+'%</td>';
+  }
+
+  data.forEach(function(c, i){
+    var t = c.total || 0;
+    var rowBg = i%2===0 ? '#f9f9f7' : '#fff';
+    if(c.counts.action>0) rowBg='#fff0f0';
+    else if(c.counts.serious>0) rowBg='#fff8f5';
+
+    sumHtml += '<tr style="background:'+rowBg+'">'
+      +'<td style="padding:7px 12px;border-bottom:1px solid #eee;font-weight:600;color:#1a1a2e;white-space:nowrap;border-right:2px solid #e0ddd5">'+c.name+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:700;color:#1a5fa8;border-right:2px solid #e0ddd5">'+t+'</td>'
+      +pctCell(c.ddCount,        t, '#2a6e2a','#e8f5e8')
+      +pctCell(c.sdCount,        t, '#16537e','#ddeefa')
+      +'<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:700;color:'+(c.scCount&&c.scCount>0?'#5c3fa0':'#ccc')+';background:'+(c.scCount&&c.scCount>0?'#eeebfa':'transparent')+';border-right:2px solid #e0ddd5;font-size:11px">'+(c.scCount&&c.scCount>0 ? (t>0?(c.scCount/t*100).toFixed(1)+'%':'—') : '—')+'</td>'
+      +pctCell(c.counts.preponed, t, '#1a5fa8','#e8f0fb')
+      +pctCell(c.counts.ontrack,  t, '#2a6e2a','#e8f5e8')
+      +pctCell(c.counts.okay,     t, '#8a5200','#fff8e1')
+      +pctCell(c.counts.mid,      t, '#856404','#fff3cd')
+      +pctCell(c.counts.concern,  t, '#b5541a','#fde9d9')
+      +pctCell(c.counts.serious,  t, '#a02020','#faeaea')
+      +(c.counts.action>0
+        ? '<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:800;color:#fff;background:#8b0000;font-size:11px">'+(t>0?(c.counts.action/t*100).toFixed(1)+'%':'—')+'</td>'
+        : '<td style="padding:7px 10px;text-align:center;border-bottom:1px solid #eee;color:#ccc;font-size:11px">—</td>')
+      +'</tr>';
+  });
+
+  // Grand total % row
+  var gt = totals.total || 1;
+  function gtPct(v){ return gt>0 ? (v/gt*100).toFixed(1)+'%' : '—'; }
+  sumHtml += '<tr style="background:#c8dff0">'
+    +'<td style="padding:8px 12px;border-top:2px solid #bbb;font-weight:800;color:#0f3460;font-size:12px;border-right:2px solid #bbb">GRAND TOTAL</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:800;color:#0f3460;font-size:13px;border-right:2px solid #bbb">'+totals.total+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#2a6e2a;background:#d0ecd0">'+gtPct(totals.dd)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#16537e;background:#cce4f4">'+gtPct(totals.sd)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#5c3fa0;background:#e0daf8;border-right:2px solid #bbb">'+gtPct(totals.sc)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#1a5fa8;background:#d0e4f8">'+gtPct(totals.preponed)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#2a6e2a;background:#d0ecd0">'+gtPct(totals.ontrack)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#8a5200;background:#fdedc0">'+gtPct(totals.okay)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#856404;background:#fde8a0">'+gtPct(totals.mid)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#b5541a;background:#fcd0b0">'+gtPct(totals.concern)+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#a02020;background:#f8c0c0">'+gtPct(totals.serious)+'</td>'
+    +(totals.action>0
+      ? '<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:800;color:#fff;background:#8b0000">'+gtPct(totals.action)+'</td>'
+      : '<td style="padding:8px 10px;text-align:center;border-top:2px solid #bbb;font-weight:700;color:#999;background:#dde8f0">—</td>')
+    +'</tr>';
+
+  sumHtml += '</tbody></table></div></div>';
+
   document.getElementById('meeting-summary-table-wrap').innerHTML = sumHtml;
+
+  // ===================== HEALTH PIE CHARTS =====================
+  (function(){
+    var chartsWrap = document.getElementById('meeting-charts-wrap');
+    chartsWrap.style.display = 'block';
+
+    var activeTotal = totals.total - totals.cancel;
+
+    // Subtitle
+    document.getElementById('meeting-chart-subtitle').textContent =
+      (custFilter === 'ALL' ? 'All Customers' : custFilter) + '  ·  ' + totals.total + ' jobs total  ·  ' + activeTotal + ' active';
+    document.getElementById('meeting-pie-total-num').textContent = totals.total;
+    document.getElementById('meeting-pie-active-num').textContent = activeTotal;
+
+    // ── Delay bucket doughnut ──
+    var delayLabels  = ['⬆ Preponed','✅ On Track','👍 Okay','⚠️ Mid Delay','🔶 Concern','🔴 Serious','🚨 Action Req','❌ Cancelled'];
+    var delayValues  = [totals.preponed, totals.ontrack, totals.okay, totals.mid, totals.concern, totals.serious, totals.action, totals.cancel];
+    var delayColors  = ['#1a5fa8','#2a6e2a','#c47a00','#856404','#b5541a','#a02020','#8b0000','#999999'];
+    var delayBgAlpha = ['#1a5fa8cc','#2a6e2acc','#c47a00cc','#856404cc','#b5541acc','#a02020cc','#8b0000cc','#999999cc'];
+
+    // Filter out zero-value slices for cleaner chart
+    var dLabels=[], dValues=[], dColors=[], dBg=[];
+    for(var di=0;di<delayLabels.length;di++){
+      if(delayValues[di]>0){
+        dLabels.push(delayLabels[di]); dValues.push(delayValues[di]);
+        dColors.push(delayColors[di]); dBg.push(delayBgAlpha[di]);
+      }
+    }
+
+    if(_charts['mtg-delay']) { _charts['mtg-delay'].destroy(); }
+    var dCtx = document.getElementById('meeting-pie-delay').getContext('2d');
+    _charts['mtg-delay'] = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: dLabels,
+        datasets: [{ data: dValues, backgroundColor: dBg, borderColor: dColors, borderWidth: 2, hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '62%',
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var val = ctx.parsed;
+                var tot = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                var pct2 = tot>0 ? (val/tot*100).toFixed(1) : 0;
+                return ' ' + val + ' jobs (' + pct2 + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // ── Job Status doughnut ──
+    var stLabels = ['✅ DD','📦 Short Dispatch','🔒 Short Close','⚙️ In Process','❌ Cancelled'];
+    var stValues = [totals.dd, totals.sd, totals.sc, totals.inProc, totals.cancel];
+    var stColors = ['#2a6e2a','#16537e','#5c3fa0','#555555','#a02020'];
+    var stBg     = ['#2a6e2acc','#16537ecc','#5c3fa0cc','#555555cc','#a02020cc'];
+
+    var sLabels=[], sValues=[], sColors=[], sBg=[];
+    for(var si2=0;si2<stLabels.length;si2++){
+      if(stValues[si2]>0){
+        sLabels.push(stLabels[si2]); sValues.push(stValues[si2]);
+        sColors.push(stColors[si2]); sBg.push(stBg[si2]);
+      }
+    }
+
+    if(_charts['mtg-status']) { _charts['mtg-status'].destroy(); }
+    var sCtx = document.getElementById('meeting-pie-status').getContext('2d');
+    _charts['mtg-status'] = new Chart(sCtx, {
+      type: 'doughnut',
+      data: {
+        labels: sLabels,
+        datasets: [{ data: sValues, backgroundColor: sBg, borderColor: sColors, borderWidth: 2, hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '62%',
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var val = ctx.parsed;
+                var tot2 = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                var pct2 = tot2>0 ? (val/tot2*100).toFixed(1) : 0;
+                return ' ' + val + ' jobs (' + pct2 + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // ── Health stat mini-cards below charts ──
+    var statCards = [
+      { label:'⬆ Preponed',    val: totals.preponed, color:'#1a5fa8', bg:'#e8f0fb' },
+      { label:'✅ On Track',   val: totals.ontrack,  color:'#2a6e2a', bg:'#e8f5e8' },
+      { label:'👍 Okay',       val: totals.okay,     color:'#c47a00', bg:'#fff8e1' },
+      { label:'⚠️ Mid Delay', val: totals.mid,      color:'#856404', bg:'#fff3cd' },
+      { label:'🔶 Concern',    val: totals.concern,  color:'#b5541a', bg:'#fde9d9' },
+      { label:'🔴 Serious',    val: totals.serious,  color:'#a02020', bg:'#faeaea' },
+      { label:'🚨 Action',     val: totals.action,   color:'#fff',    bg:'#8b0000' },
+      { label:'❌ Cancelled',  val: totals.cancel,   color:'#666',    bg:'#f0f0f0' }
+    ];
+    var statsHtml = '';
+    statCards.forEach(function(s){
+      var pctStr = totals.total > 0 ? (s.val/totals.total*100).toFixed(1)+'%' : '—';
+      statsHtml += '<div style="background:'+s.bg+';border-radius:8px;padding:10px 8px;text-align:center">'
+        +'<div style="font-size:9px;color:'+(s.label.includes('Action')?'#fcc':'var(--text2)')+';font-weight:700;margin-bottom:4px;white-space:nowrap">'+s.label+'</div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+s.color+';line-height:1">'+s.val+'</div>'
+        +'<div style="font-size:10px;color:'+(s.label.includes('Action')?'#faa':s.color)+';font-weight:600;margin-top:2px">'+pctStr+'</div>'
+        +'</div>';
+    });
+    document.getElementById('meeting-health-stats').innerHTML = statsHtml;
+  })();
 
   // ===================== DETAIL SECTION =====================
   var detailHtml = '';
@@ -2754,6 +2980,112 @@ function downloadMeetingExcel(){
       ]
     );
 
+    // ===================== % BREAKDOWN TABLE (from DD-SD-SC data) =====================
+    addSumRow(['','','','','','','','','','','','','','',''], Array(15).fill(null));
+    addSumRow(['','','','','','','','','','','','','','',''], Array(15).fill(null));
+
+    // Title
+    addSumRow(
+      ['Customer Wise Job % Breakdown  (Source: DD / Short Dispatch / Short Close)','','','','','','','','','','','','','',''],
+      [mcs('FFFFFFFF','FF1A1A2E',true,12,'left')].concat(Array(14).fill(null))
+    );
+    addSumRow(['','','','','','','','','','','','','','',''], Array(15).fill(null));
+
+    // Header — 12 columns: #, Customer, Total, DD%, SD%, SC%, Pre%, OnTrack%, Okay%, Mid%, Serious%, Action%
+    var bkHdrs = ['#','Customer','Total','✅ DD %','📦 S.Dispatch %','🔒 S.Close %','⬆ Preponed %','✅ On Track %','👍 Okay %','⚠️ Mid %','🔶 Concern %','🔴 Serious %','🚨 Action %'];
+    var bkBgs  = ['FF1A1A2E','FF1A1A2E','FF1A3A6A',
+                  'FF1A3A1A','FF16375A','FF3A2070',
+                  'FF1A3A6A','FF1A4A2A','FF4A3000',
+                  'FF4A3800','FF5A2800','FF6A1010','FF3D0000'];
+    addSumRow(
+      bkHdrs.concat(['','']),
+      bkHdrs.map(function(h,i){ return mcs('FFFFFFFF', bkBgs[i], true, 10, 'center'); }).concat([null,null])
+    );
+
+    // Per-customer rows — counts from ddJobs+sdJobs+scJobs directly using days
+    var bkTot={total:0,dd:0,sd:0,sc:0,pre:0,on:0,ok:0,mid:0,con:0,ser:0,act:0};
+    data.forEach(function(c, i){
+      var tot = c.total||0;
+      var dd  = c.ddCount||0;
+      var sd  = c.sdCount||0;
+      var sc  = c.scCount||0;
+
+      // Count delay buckets FROM DD+SD+SC jobs only (using days field)
+      var ddsdscAll = (c.ddJobs||[]).concat(c.sdJobs||[]).concat(c.scJobs||[]);
+      var pre=0, on=0, ok=0, mid=0, con=0, ser=0, act=0;
+      ddsdscAll.forEach(function(j){
+        var bk2 = getBK(j.days);
+        if(bk2==='preponed')     pre++;
+        else if(bk2==='ontrack') on++;
+        else if(bk2==='okay')    ok++;
+        else if(bk2==='mid')     mid++;
+        else if(bk2==='concern') con++;
+        else if(bk2==='serious') ser++;
+        else if(bk2==='action')  act++;
+      });
+
+      bkTot.total+=tot; bkTot.dd+=dd; bkTot.sd+=sd; bkTot.sc+=sc;
+      bkTot.pre+=pre; bkTot.on+=on; bkTot.ok+=ok; bkTot.mid+=mid;
+      bkTot.con+=con; bkTot.ser+=ser; bkTot.act+=act;
+
+      var alt = i%2===0 ? 'FFF5F8FF' : 'FFFFFFFF';
+      var rowBg = act>0 ? 'FFFFF0F0' : ser>0 ? 'FFFFF5F5' : alt;
+      var ddsdscBase = dd+sd+sc;
+      function fp(v){ return ddsdscBase>0 ? (v/ddsdscBase*100).toFixed(1)+'%' : tot>0 ? (v/tot*100).toFixed(1)+'%' : '—'; }
+      function pc(v, fg, bg){ return v>0 ? mcs(fg,bg,true,10,'center') : mcs('FFCCCCCC',rowBg,false,9,'center'); }
+
+      addSumRow(
+        [i+1, c.name, tot,
+         fp(dd), fp(sd), fp(sc),
+         fp(pre), fp(on), fp(ok), fp(mid), fp(con), fp(ser),
+         act>0 ? fp(act) : '—',
+         '',''],
+        [
+          mcs('FF888888',rowBg,false,9,'center'),
+          mcs('FF1A1A2E',rowBg,true, 9,'left'),
+          mcs('FF1A5FA8',rowBg,true,10,'center'),
+          pc(dd, 'FF2A6E2A','FFE8F5E8'),
+          pc(sd, 'FF16537E','FFD0E8F5'),
+          pc(sc, 'FF5C3FA0','FFE8E0F5'),
+          pc(pre,'FF1A5FA8','FFD0E4F8'),
+          pc(on, 'FF2A6E2A','FFD0ECD0'),
+          pc(ok, 'FF8A5200','FFFDE9A0'),
+          pc(mid,'FF856404','FFFCD0A0'),
+          pc(con,'FFB5541A','FFFCB880'),
+          pc(ser,'FFA02020','FFF8C0C0'),
+          act>0 ? mcs('FFFFFFFF','FF8B0000',true,10,'center') : mcs('FFCCCCCC',rowBg,false,9,'center'),
+          null, null
+        ]
+      );
+    });
+
+    // Grand total row
+    var bT = bkTot;
+    function gfp(v){ return bT.total>0 ? (v/bT.total*100).toFixed(1)+'%' : '—'; }
+    addSumRow(
+      ['','GRAND TOTAL', bT.total,
+       gfp(bT.dd), gfp(bT.sd), gfp(bT.sc),
+       gfp(bT.pre), gfp(bT.on), gfp(bT.ok), gfp(bT.mid), gfp(bT.con), gfp(bT.ser),
+       bT.act>0 ? gfp(bT.act) : '—',
+       '',''],
+      [
+        null,
+        mcs('FF0F3460','FFC8DFF0',true,10,'left'),
+        mcs('FF0F3460','FFC8DFF0',true,11,'center'),
+        mcs('FF2A6E2A','FFB8E8C8',true,10,'center'),
+        mcs('FF16537E','FFCCE4F4',true,10,'center'),
+        mcs('FF5C3FA0','FFE0DAF8',true,10,'center'),
+        mcs('FF1A5FA8','FFD0E4F8',true,10,'center'),
+        mcs('FF2A6E2A','FFD0ECD0',true,10,'center'),
+        mcs('FF8A5200','FFFDEDC0',true,10,'center'),
+        mcs('FF856404','FFFDE8A0',true,10,'center'),
+        mcs('FFB5541A','FFFCD0B0',true,10,'center'),
+        mcs('FFA02020','FFF8C0C0',true,10,'center'),
+        bT.act>0 ? mcs('FFFFFFFF','FF8B0000',true,10,'center') : mcs('FF0F3460','FFC8DFF0',true,10,'center'),
+        null, null
+      ]
+    );
+
     var wsSumSheet = XLSX.utils.aoa_to_sheet(sumRows);
     for(var si=0; si<sumStyles.length; si++){
       for(var sj=0; sj<sumStyles[si].length; sj++){
@@ -2764,13 +3096,24 @@ function downloadMeetingExcel(){
         }
       }
     }
-    wsSumSheet['!merges']  = [{s:{r:0,c:0}, e:{r:0,c:14}}];
-    wsSumSheet['!cols']    = [{wch:4},{wch:28},{wch:9},{wch:9},{wch:15},{wch:13},{wch:12},{wch:12},
-                              {wch:12},{wch:12},{wch:10},{wch:12},{wch:11},{wch:11},{wch:12}];
+
+    // Row 0=main title; breakdown title row = 4+data.length+2 (2 blank sep rows after grand total)
+    var bkTitleRowIdx = 4 + (sumRows.length - data.length - 1 - 4 - 2 - 1 - 1);
+
+    wsSumSheet['!merges']  = [
+      {s:{r:0,c:0}, e:{r:0,c:14}},
+      {s:{r:3+data.length+1+2,c:0}, e:{r:3+data.length+1+2,c:12}}
+    ];
+    wsSumSheet['!cols']    = [
+      {wch:4},{wch:30},{wch:8},{wch:10},{wch:14},{wch:12},
+      {wch:12},{wch:12},{wch:10},{wch:10},{wch:12},{wch:11},{wch:11},{wch:6},{wch:6}
+    ];
     wsSumSheet['!rows']    = [{hpt:24},{hpt:4},{hpt:20}];
     wsSumSheet['!autofilter'] = {ref:'A3:O'+(sumRows.length)};
     wsSumSheet['!freeze']     = {xSplit:0, ySplit:3};
     XLSX.utils.book_append_sheet(wb2, wsSumSheet, 'Customer Summary');
+
+
 
     // ===================== HELPER: build a customer-wise job sheet =====================
     function buildJobSheet(sheetTitle, filterFn, headerColor){
@@ -2846,6 +3189,166 @@ function downloadMeetingExcel(){
       function(c){ return c.ddJobs.concat(c.sdJobs).concat(c.scJobs); },
       'FF1A3A1A'
     );
+
+    // ── % SUMMARY TABLE appended to DD-SD-SC sheet ──
+    (function(){
+      var ws = wsDDSDSC;
+      // Find next empty row (after existing data)
+      var ref = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : {e:{r:3}};
+      var startR = ref.e.r + 2; // 2 blank rows gap
+
+      function setCell(r, c, val, style){
+        var addr = XLSX.utils.encode_cell({r:r, c:c});
+        ws[addr] = { t: typeof val==='number' ? 'n' : 's', v: val };
+        if(style) ws[addr].s = style;
+      }
+
+      // Grand total of all jobs (for % base)
+      var grandTot = data.reduce(function(a,c){ return a+(c.total||0); }, 0);
+
+      // Title row
+      setCell(startR, 0, '📊 Customer Wise % Breakdown — DD / Short Dispatch / Short Close', mcs('FFFFFFFF','FF1A1A2E',true,12,'left'));
+      for(var mc=1; mc<=10; mc++) setCell(startR, mc, '', null);
+      ws['!merges'] = (ws['!merges']||[]);
+      ws['!merges'].push({s:{r:startR,c:0}, e:{r:startR,c:10}});
+
+      startR++; // blank
+      setCell(startR, 0, '', null);
+      startR++;
+
+      // Header row — DD/SD/SC counts+% then delay buckets %
+      var pHdrs = [
+        '#','Customer','Total',
+        'DD','DD %',
+        'S.Dispatch','SD %',
+        'S.Close','SC %',
+        '⬆ Pre %','✅ On Track %','👍 Okay %','⚠️ Mid %','🔶 Concern %','🔴 Serious %','🚨 Action %'
+      ];
+      var pHdrBgs = [
+        'FF1A1A2E','FF1A1A2E','FF1A3A6A',
+        'FF1A3A1A','FF1A3A1A',
+        'FF16375A','FF16375A',
+        'FF3A2070','FF3A2070',
+        'FF1A3A6A','FF1A4A2A','FF4A3000','FF4A3800','FF5A2800','FF6A1010','FF3D0000'
+      ];
+      pHdrs.forEach(function(h, ci){
+        setCell(startR, ci, h, mcs('FFFFFFFF', pHdrBgs[ci], true, 10, 'center'));
+      });
+      startR++;
+
+      // Data rows
+      var sumDD=0,sumSD=0,sumSC=0,sumTotal=0;
+      var sumPre=0,sumOn=0,sumOk=0,sumMid=0,sumCon=0,sumSer=0,sumAct=0;
+
+      data.forEach(function(c, i){
+        var tot = c.total||0;
+        var dd  = c.ddCount||0;
+        var sd  = c.sdCount||0;
+        var sc  = c.scCount||0;
+
+        // only show customers who have at least one DD/SD/SC job
+        if(!(dd+sd+sc)) return;
+
+        // Count delay buckets directly from DD+SD+SC jobs using days
+        var ddsdscJobs2 = (c.ddJobs||[]).concat(c.sdJobs||[]).concat(c.scJobs||[]);
+        var pre=0, on=0, ok=0, mid=0, con=0, ser=0, act=0;
+        ddsdscJobs2.forEach(function(j){
+          var bk3 = getBK(j.days);
+          if(bk3==='preponed')     pre++;
+          else if(bk3==='ontrack') on++;
+          else if(bk3==='okay')    ok++;
+          else if(bk3==='mid')     mid++;
+          else if(bk3==='concern') con++;
+          else if(bk3==='serious') ser++;
+          else if(bk3==='action')  act++;
+        });
+
+        sumDD+=dd; sumSD+=sd; sumSC+=sc; sumTotal+=tot;
+        sumPre+=pre; sumOn+=on; sumOk+=ok; sumMid+=mid; sumCon+=con; sumSer+=ser; sumAct+=act;
+
+        var alt = i%2===0 ? 'FFF5F8FF' : 'FFFFFFFF';
+        var rowBg = act>0 ? 'FFFFF0F0' : ser>0 ? 'FFFFF5F5' : alt;
+
+        var ddsdscTot = dd+sd+sc;
+        function p(v){ return ddsdscTot>0 ? (v/ddsdscTot*100).toFixed(1)+'%' : '—'; }
+        function delayCell(v, fg, bg){
+          return v>0 ? {v:p(v), s:mcs(fg,bg,true,10,'center')} : {v:'—', s:mcs('FFCCCCCC',rowBg,false,9,'center')};
+        }
+
+        var preC = delayCell(pre,'FF1A5FA8','FFD0E4F8');
+        var onC  = delayCell(on, 'FF2A6E2A','FFD0ECD0');
+        var okC  = delayCell(ok, 'FF8A5200','FFFDE9A0');
+        var midC = delayCell(mid,'FF856404','FFFCD0A0');
+        var conC = delayCell(con,'FFB5541A','FFFCB880');
+        var serC = delayCell(ser,'FFA02020','FFF8C0C0');
+        var actS = act>0 ? mcs('FFFFFFFF','FF8B0000',true,10,'center') : mcs('FFCCCCCC',rowBg,false,9,'center');
+
+        var vals = [
+          i+1, c.name, tot,
+          dd,  dd>0?p(dd):'—',
+          sd,  sd>0?p(sd):'—',
+          sc,  sc>0?p(sc):'—',
+          preC.v, onC.v, okC.v, midC.v, conC.v, serC.v, act>0?p(act):'—'
+        ];
+        var stys = [
+          mcs('FF888888',rowBg,false,9,'center'),
+          mcs('FF1A1A2E',rowBg,true, 9,'left'),
+          mcs('FF1A5FA8',rowBg,true,10,'center'),
+          dd>0?mcs('FF2A6E2A','FFE8F5E8',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          dd>0?mcs('FF2A6E2A','FFE8F5E8',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          sd>0?mcs('FF16537E','FFD0E8F5',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          sd>0?mcs('FF16537E','FFD0E8F5',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          sc>0?mcs('FF5C3FA0','FFE8E0F5',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          sc>0?mcs('FF5C3FA0','FFE8E0F5',true,10,'center'):mcs('FFCCCCCC',rowBg,false,9,'center'),
+          preC.s, onC.s, okC.s, midC.s, conC.s, serC.s, actS
+        ];
+        vals.forEach(function(v,ci){ setCell(startR, ci, v, stys[ci]); });
+        startR++;
+      });
+
+      // Grand Total row
+      function gp(v){ return sumTotal>0 ? (v/sumTotal*100).toFixed(1)+'%' : '—'; }
+      var gtVals = [
+        '','GRAND TOTAL', sumTotal,
+        sumDD, gp(sumDD),
+        sumSD, gp(sumSD),
+        sumSC, gp(sumSC),
+        gp(sumPre), gp(sumOn), gp(sumOk), gp(sumMid), gp(sumCon), gp(sumSer),
+        sumAct>0 ? gp(sumAct) : '—'
+      ];
+      var gtStys = [
+        null,
+        mcs('FF0F3460','FFC8DFF0',true,10,'left'),
+        mcs('FF0F3460','FFC8DFF0',true,11,'center'),
+        mcs('FF2A6E2A','FFB8E8C8',true,10,'center'),
+        mcs('FF2A6E2A','FFB8E8C8',true,10,'center'),
+        mcs('FF16537E','FFCCE4F4',true,10,'center'),
+        mcs('FF16537E','FFCCE4F4',true,10,'center'),
+        mcs('FF5C3FA0','FFE0DAF8',true,10,'center'),
+        mcs('FF5C3FA0','FFE0DAF8',true,10,'center'),
+        mcs('FF1A5FA8','FFD0E4F8',true,10,'center'),
+        mcs('FF2A6E2A','FFD0ECD0',true,10,'center'),
+        mcs('FF8A5200','FFFDEDC0',true,10,'center'),
+        mcs('FF856404','FFFDE8A0',true,10,'center'),
+        mcs('FFB5541A','FFFCD0B0',true,10,'center'),
+        mcs('FFA02020','FFF8C0C0',true,10,'center'),
+        sumAct>0 ? mcs('FFFFFFFF','FF8B0000',true,10,'center') : mcs('FF0F3460','FFC8DFF0',true,10,'center')
+      ];
+      gtVals.forEach(function(v,ci){ setCell(startR, ci, v, gtStys[ci]); });
+
+      // Update sheet ref
+      var newRef = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:startR, c:15}});
+      ws['!ref'] = newRef;
+      if(!ws['!cols']) ws['!cols'] = [];
+      ws['!cols'] = [
+        {wch:4},{wch:28},{wch:8},
+        {wch:7},{wch:8},
+        {wch:13},{wch:8},
+        {wch:10},{wch:8},
+        {wch:10},{wch:12},{wch:10},{wch:9},{wch:12},{wch:11},{wch:11}
+      ];
+    })();
+
     XLSX.utils.book_append_sheet(wb2, wsDDSDSC, 'DD-SD-SC');
 
     // Sheet 4 — In Process / Not Started

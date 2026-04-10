@@ -3061,7 +3061,8 @@ function downloadMeetingExcel(){
 
     // Grand total row
     var bT = bkTot;
-    function gfp(v){ return bT.total>0 ? (v/bT.total*100).toFixed(1)+'%' : '—'; }
+    var bTddsdsc = bT.dd+bT.sd+bT.sc;
+    function gfp(v){ return bTddsdsc>0 ? (v/bTddsdsc*100).toFixed(1)+'%' : '—'; }
     addSumRow(
       ['','GRAND TOTAL', bT.total,
        gfp(bT.dd), gfp(bT.sd), gfp(bT.sc),
@@ -3307,7 +3308,8 @@ function downloadMeetingExcel(){
       });
 
       // Grand Total row
-      function gp(v){ return sumTotal>0 ? (v/sumTotal*100).toFixed(1)+'%' : '—'; }
+      var sumDDSDSC = sumDD+sumSD+sumSC;
+      function gp(v){ return sumDDSDSC>0 ? (v/sumDDSDSC*100).toFixed(1)+'%' : '—'; }
       var gtVals = [
         '','GRAND TOTAL', sumTotal,
         sumDD, gp(sumDD),

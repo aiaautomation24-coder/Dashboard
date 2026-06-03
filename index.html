@@ -134,6 +134,15 @@ th.num{text-align:right}
 .chart-box canvas{max-height:240px}
 
 
+/* MISSED REPORT */
+.mr-row-missed td{ background:#fff0f0!important; }
+.mr-row-done  td{ background:#f0fff4!important; }
+.mr-row-unk   td{ background:#fffdf0!important; }
+.mr-checkbox{ width:16px;height:16px;cursor:pointer;accent-color:var(--red); }
+.mr-reason-sel{ font-size:11px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);width:100%; }
+.mr-remark-inp{ font-size:11px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);width:100%; }
+.mr-status-badge{ font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700;display:inline-block; }
+
 .empty{text-align:center;padding:40px;color:var(--text2)}
 .empty svg{margin:0 auto 10px;display:block;opacity:.3}
 .empty p{font-size:13px}
@@ -264,6 +273,8 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
   <div class="tab" onclick="showTab('aging',this)">⏳ Aging Report</div>
   <div class="tab" onclick="showTab('timeline',this)">📈 Job Timeline</div>
   <div class="tab" onclick="showTab('meeting',this)">🤝 Meeting Summary</div>
+  <div class="tab" onclick="showTab('missreport',this)">📋 Missed Report</div>
+  <div class="tab" onclick="showTab('overdue',this)">🔴 Overdue Jobs</div>
 </div>
 
 <div class="main">
@@ -465,9 +476,11 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
         <th class="num" style="background:#d0e8f5;color:#16537e">🖨️ Print Date</th>
         <th class="num" style="background:#e8e0f5;color:#5c3fa0">👊 Punch Date</th>
         <th class="num" style="background:#fde9d9;color:#b5541a">📋 Paste Date</th>
+        <th class="num" style="background:#fef9e7;color:#7d6608">📄 PO Date</th>
+        <th style="background:#eaf4fb;color:#1a5f7a">🔩 RM Status</th>
         <th>Bucket</th>
       </tr></thead>
-      <tbody id="aging-table"><tr><td colspan="13" style="text-align:center;color:var(--text2);padding:20px">Upload data to view aging report</td></tr></tbody>
+      <tbody id="aging-table"><tr><td colspan="15" style="text-align:center;color:var(--text2);padding:20px">Upload data to view aging report</td></tr></tbody>
     </table></div>
   </div>
 </div>
@@ -572,6 +585,121 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
   </div>
 </div>
 
+
+<!-- ===================== MISSED REPORT TAB ===================== -->
+<div id="tab-missreport" class="panel">
+  <div class="sec">
+    <div class="sec-head">
+      <h2>📋 Missed Report — Today's Scheduled Jobs</h2>
+      <span id="missrpt-info">—</span>
+    </div>
+
+    <!-- Controls bar -->
+    <div style="padding:10px 15px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:11px;font-weight:700;color:var(--text2)">📅 Date:</label>
+      <input type="date" id="missrpt-date" style="padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text);background:var(--surface)">
+      <label style="font-size:11px;font-weight:700;color:var(--text2)">Process:</label>
+      <select id="missrpt-proc" style="padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;min-width:140px">
+        <option value="ALL">All Processes</option>
+        <option value="printing">🖨️ Printing</option>
+        <option value="punching">👊 Punching</option>
+        <option value="pasting">📋 Pasting</option>
+      </select>
+      <button onclick="renderMissReport()" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">Load</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button onclick="downloadMissReportExcel('weekly')" style="background:#2a6e2a;color:#fff;border:none;border-radius:var(--radius);padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Weekly Excel</button>
+        <button onclick="downloadMissReportExcel('monthly')" style="background:#1a5fa8;color:#fff;border:none;border-radius:var(--radius);padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Monthly Excel</button>
+        <button onclick="saveMissReportEntries()" style="background:#b5541a;color:#fff;border:none;border-radius:var(--radius);padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">💾 Save Entries</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div style="display:flex;gap:10px;padding:12px 15px;flex-wrap:wrap;border-bottom:1px solid var(--border)">
+      <div class="card c-blue" style="min-width:100px"><div class="cl">Scheduled Today</div><div class="cv" id="mr-total">—</div></div>
+      <div class="card c-red" style="min-width:100px"><div class="cl">Missed</div><div class="cv" id="mr-missed">—</div></div>
+      <div class="card c-green" style="min-width:100px"><div class="cl">Completed</div><div class="cv" id="mr-done">—</div></div>
+      <div class="card c-amber" style="min-width:100px"><div class="cl">Pending</div><div class="cv" id="mr-pending">—</div></div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table id="missrpt-table">
+        <thead>
+          <tr>
+            <th style="width:34px"><input type="checkbox" id="mr-check-all" title="Select All" onchange="mrToggleAll(this.checked)"></th>
+            <th>JCNO</th><th>Job Name</th><th>Customer</th><th>Process</th>
+            <th class="num">Sched. Date</th><th class="num">Rev. Commit</th>
+            <th style="width:160px">Missed Reason</th>
+            <th style="width:200px">Remark</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="missrpt-tbody">
+          <tr><td colspan="10" style="text-align:center;color:var(--text2);padding:30px">Schedule files upload karo ani "Load" dabba</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Saved entries history -->
+  <div class="sec" style="margin-top:14px">
+    <div class="sec-head">
+      <h2>📜 Saved Missed Entries History</h2>
+      <span id="mr-history-count">—</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Process</th>
+          <th>Reason</th><th>Remark</th><th>Saved At</th><th></th>
+        </tr></thead>
+        <tbody id="mr-history-tbody">
+          <tr><td colspan="9" style="text-align:center;color:var(--text2);padding:20px">No saved entries yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== OVERDUE JOBS TAB ===================== -->
+<div id="tab-overdue" class="panel">
+  <!-- Summary cards -->
+  <div class="cards" style="margin-bottom:14px">
+    <div class="card c-red"><div class="cl">Total Overdue</div><div class="cv" id="od-total">—</div><div class="cs">Rev. Commit passed</div></div>
+    <div class="card" style="background:#fff3e0"><div class="cl">1–7 Days</div><div class="cv" id="od-1-7" style="color:#b5541a">—</div></div>
+    <div class="card" style="background:#fde9d9"><div class="cl">8–15 Days</div><div class="cv" id="od-8-15" style="color:#b5541a">—</div></div>
+    <div class="card" style="background:#faeaea"><div class="cl">16–30 Days</div><div class="cv" id="od-16-30" style="color:#a02020">—</div></div>
+    <div class="card" style="background:#3d0000"><div class="cl" style="color:#ffaaaa">30+ Days</div><div class="cv" id="od-30plus" style="color:#ff6666">—</div></div>
+    <div class="card c-amber"><div class="cl">Customers Affected</div><div class="cv" id="od-custs">—</div></div>
+  </div>
+
+  <!-- Chart + Download -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--text2)">Revised Commitment Date filters same as main filter</div>
+    <button onclick="downloadOverdueExcel()" style="background:#a02020;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Download Overdue Excel</button>
+  </div>
+
+  <div class="chart-grid" style="margin-bottom:14px">
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>🔴 Overdue Jobs by Customer — Bucket Distribution</h3>
+      <canvas id="chart-overdue" style="max-height:260px"></canvas>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><h2>Overdue Jobs Detail</h2><span id="od-info">—</span></div>
+    <div class="search-box"><input type="text" id="od-search" placeholder="Search JCNO or customer..." oninput="filterOverdueTable()"></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>
+        <th class="num">Pending Qty</th><th class="num">Rev. Commit Date</th>
+        <th class="num">Days Overdue</th><th>Bucket</th>
+      </tr></thead>
+      <tbody id="od-table"><tr><td colspan="9" style="text-align:center;color:var(--text2);padding:20px">Upload data to view overdue jobs</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -597,11 +725,14 @@ var D = {
   _rawRows: [],
   _keys: {},
   _filterFrom: null,
-  _filterTo: null
+  _filterTo: null,
+  // Missed report saved entries
+  missedEntries: []  // [{date, jcno, jobName, cust, proc, schedDate, reason, remark, savedAt}]
 };
 
 function fmt(n){ if(!n && n!==0) return '—'; return Math.round(n).toLocaleString('en-IN'); }
 function fmtDate(d){ if(!d) return '—'; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
+function fmtDDMMYYYY(d){ if(!d||isNaN(d)) return '—'; return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
 function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '0%'; }
 
 // ===================== DATE FILTER =====================
@@ -696,6 +827,8 @@ function showTab(id, el){
   document.getElementById('tab-'+id).classList.add('active');
   if(el) el.classList.add('active');
   if(id==='meeting' && D.loaded) renderMeetingSummary();
+  if(id==='missreport') renderMissReport();
+  if(id==='overdue' && D.loaded) renderOverdueTab();
 }
 
 // ---- LOADING SPINNER ----
@@ -925,9 +1058,23 @@ function processTrackRecord(data){
            (k.toLowerCase().includes('dispatch') && k.toLowerCase().includes('date'));
   }) || '';
 
+  var poDateKey = keys.find(function(k){
+    var kl = k.toLowerCase().replace(/[\s_\n]/g,'');
+    return kl.includes('podate') || kl.includes('p.o.date') || kl.includes('purchaseorder') ||
+           (k.toLowerCase().includes('po') && k.toLowerCase().includes('date'));
+  }) || '';
+
+  var rmStatusKey = keys.find(function(k){
+    var kl = k.toLowerCase().replace(/[\s_\n]/g,'');
+    return kl.includes('rmstatus') || kl.includes('r.m.status') || kl.includes('rawmaterial') ||
+           kl.includes('rmupdate') || (k.toLowerCase().includes('rm') && k.toLowerCase().includes('status')) ||
+           (k.toLowerCase().includes('update') && k.toLowerCase().includes('1.7')) ||
+           kl.includes('update1.7.2024') || kl.includes('updatestatus');
+  }) || '';
+
   // Store raw data + key mapping
   D._rawRows = data;
-  D._keys = { dateKey:dateKey, statusKey:statusKey, custKey:custKey, pendKey:pendKey, cutKey:cutKey, nextKey:nextKey, jcnoKey:jcnoKey, jobNameKey:jobNameKey, revCommitKey:revCommitKey, dispatchDateKey:dispatchDateKey };
+  D._keys = { dateKey:dateKey, statusKey:statusKey, custKey:custKey, pendKey:pendKey, cutKey:cutKey, nextKey:nextKey, jcnoKey:jcnoKey, jobNameKey:jobNameKey, revCommitKey:revCommitKey, dispatchDateKey:dispatchDateKey, poDateKey:poDateKey, rmStatusKey:rmStatusKey };
 
   // Default filter: From = 1 Jan 2026, To = Today
   var jan2026Init = new Date('2026-01-01');
@@ -1054,7 +1201,25 @@ function computeFromRows(rows, k, fromD, toD){
       cutsh: parseFloat(r[k.cutKey])||0,
       revDate: rd,
       days: days,
-      bucket: bucket
+      bucket: bucket,
+      poDate: (function(){
+        var raw = k.poDateKey ? r[k.poDateKey] : '';
+        if(!raw && raw!==0) return '';
+        // Excel serial number
+        if(typeof raw==='number'){
+          var exD=new Date(Math.round((raw-25569)*86400000));
+          return isNaN(exD)?'':fmtDDMMYYYY(exD);
+        }
+        // Date object
+        if(raw instanceof Date) return isNaN(raw)?'':fmtDDMMYYYY(raw);
+        // String — try parse
+        var s=String(raw).trim();
+        if(!s) return '';
+        var d=new Date(s);
+        if(!isNaN(d)) return fmtDDMMYYYY(d);
+        return s; // fallback: show as-is
+      })(),
+      rmStatus: k.rmStatusKey ? String(r[k.rmStatusKey]||'').trim() : ''
     };
   }).sort(function(a,b){ return b.days - a.days; });
 
@@ -1243,6 +1408,8 @@ function renderAll(){
   populateTimelineDropdown();
   populateMeetingDropdownAndRender();
   renderAllCustomersTimeline();
+  // Overdue tab (only if active or always compute)
+  renderOverdueTab();
 }
 
 // ===================== CHARTS =====================
@@ -1839,7 +2006,7 @@ function downloadExcel(){
   // SHEET 3 — AGING REPORT
   // ================================================================
   (function(){
-    var agHeaders=['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','Print Date','Punch Date','Paste Date','Bucket'];
+    var agHeaders=['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','PO Date','RM Status\n(Update 1.7.2024)','Print Date','Punch Date','Paste Date','Bucket'];
     var agBucketFG={'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
     var agBucketBG={'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
     var agTodayD=new Date(); agTodayD.setHours(0,0,0,0);
@@ -1884,9 +2051,24 @@ function downloadExcel(){
         var jcno=String(r.jcno).trim();
         var printD=D.schedPrinting[jcno]||'', punchD=D.schedPunching[jcno]||'', pasteD=D.schedPasting[jcno]||'';
         var pqtyVal=Math.round(r.pqty||0), cutshVal=Math.round(r.cutsh||0);
+        var poDateVal = String(r.poDate||'').trim();
+        var rmStatusVal = String(r.rmStatus||'').trim();
         addAg(
-          [agRowNum,r.jcno,r.jobName||'',r.cust,r.status,pqtyVal,cutshVal,r.revDate?fmtDate(r.revDate):'',r.days,printD||'—',punchD||'—',pasteD||'—',r.bucket+' days'],
-          [cs('FF888888',altBg,false,9,'center'),cs('FF1A5FA8',altBg,true,9,'left'),cs('FF1A1A2E',altBg,false,9,'left'),cs('FF1A1A2E',altBg,false,9,'left'),cs(bfg,bbg,true,9,'center'),cs('FF0F3460',altBg,false,9,'right','#,##0'),cs('FF0F3460',altBg,false,9,'right','#,##0'),cs('FF444444',altBg,false,9,'center'),cs(bfg,bbg,true,11,'center'),
+          [agRowNum, r.jcno, r.jobName||'', r.cust, r.status, pqtyVal, cutshVal,
+           r.revDate?fmtDate(r.revDate):'', r.days,
+           poDateVal||'—', rmStatusVal||'—',
+           printD||'—', punchD||'—', pasteD||'—', r.bucket+' days'],
+          [cs('FF888888',altBg,false,9,'center'),
+           cs('FF1A5FA8',altBg,true,9,'left'),
+           cs('FF1A1A2E',altBg,false,9,'left'),
+           cs('FF1A1A2E',altBg,false,9,'left'),
+           cs(bfg,bbg,true,9,'center'),
+           cs('FF0F3460',altBg,false,9,'right','#,##0'),
+           cs('FF0F3460',altBg,false,9,'right','#,##0'),
+           cs('FF444444',altBg,false,9,'center'),
+           cs(bfg,bbg,true,11,'center'),
+           cs('FF7D6608','FFFEF9E7',false,9,'center'),
+           cs('FF1A5F7A','FFEAF4FB',false,9,'left'),
            agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
            agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
            agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
@@ -1902,11 +2084,20 @@ function downloadExcel(){
       }
     }
     wsAging['!merges']=agMerges;
-    wsAging['!cols']=[{wch:5},{wch:15},{wch:34},{wch:26},{wch:18},{wch:13},{wch:12},{wch:16},{wch:13},{wch:14},{wch:14},{wch:14},{wch:13}];
-    var agRH=[{hpt:30},{hpt:18},{hpt:22}]; for(var arh=0;arh<agGrid.length-3;arh++) agRH.push({hpt:16});
+    // Column widths: #, JCNO, Job Name, Customer, Status, Pend Qty, Cut SH, Rev Commit, Days, PO Date, RM Status, Print, Punch, Paste, Bucket
+    wsAging['!cols']=[
+      {wch:4},{wch:13},{wch:28},{wch:22},{wch:14},
+      {wch:10},{wch:10},{wch:14},{wch:10},
+      {wch:12},{wch:22},
+      {wch:12},{wch:12},{wch:12},{wch:11}
+    ];
+    var agRH=[{hpt:32},{hpt:16},{hpt:26}]; for(var arh=0;arh<agGrid.length-3;arh++) agRH.push({hpt:15});
     wsAging['!rows']=agRH;
     wsAging['!freeze']={xSplit:0,ySplit:3};
-    wsAging['!autofilter']={ref:'A3:M'+(agGrid.length)};
+    wsAging['!autofilter']={ref:'A3:O'+(agGrid.length)};
+    // Print friendly: landscape, fit to 1 page wide, narrow margins, repeat header rows
+    wsAging['!pageSetup']={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+    wsAging['!margins']={left:0.35,right:0.35,top:0.45,bottom:0.45,header:0.15,footer:0.15};
     XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
   })();
 
@@ -2021,7 +2212,7 @@ function renderAgingTable(rows){
       html+='<tr style="background:'+bg+'">'
         +'<td>'+globalRowNum+'</td>'
         +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
-        +'<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+        +'<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
         +'<td>'+r.cust+'</td>'
         +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
         +'<td class="num">'+fmt(r.pqty)+'</td>'
@@ -2031,6 +2222,8 @@ function renderAgingTable(rows){
         +schedCell(printDate,'#d0e8f5')
         +schedCell(punchDate,'#e8e0f5')
         +schedCell(pasteDate,'#fde9d9')
+        +'<td class="num" style="background:#fef9e7;color:#7d6608;font-size:11px">'+(r.poDate||'—')+'</td>'
+        +'<td style="background:#eaf4fb;color:#1a5f7a;font-size:11px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.rmStatus||'')+'">'+(r.rmStatus||'—')+'</td>'
         +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
         +'</tr>';
     });
@@ -2042,16 +2235,16 @@ function renderAgingTable(rows){
       +'</td>'
       +'<td class="num" style="font-weight:700;color:#0f3460">'+fmt(custPqty)+'</td>'
       +'<td class="num" style="font-weight:700;color:#0f3460">'+fmt(custCutsh)+'</td>'
-      +'<td colspan="6"></td>'
+      +'<td colspan="8"></td>'
       +'</tr>';
 
     // Spacer row between customer groups (except after last)
     if(ci < custOrder.length - 1){
-      html+='<tr style="height:8px;background:var(--bg)"><td colspan="13" style="padding:0;border:none"></td></tr>';
+      html+='<tr style="height:8px;background:var(--bg)"><td colspan="15" style="padding:0;border:none"></td></tr>';
     }
   });
 
-  document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
+  document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
 }
 
 // ===================== DRILL-DOWN MODAL =====================
@@ -3405,9 +3598,526 @@ function downloadMeetingExcel(){
 }
 
 
+// ===================== MISSED REPORT =====================
+var _missRows = []; // current rendered rows
+
+function renderMissReport(){
+  if(!D.loaded){
+    document.getElementById('missrpt-tbody').innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text2);padding:30px">⚠️ Pehle AIA Track Record upload karo</td></tr>';
+    return;
+  }
+  var dateVal = document.getElementById('missrpt-date').value;
+  var procFilter = document.getElementById('missrpt-proc').value;
+  if(!dateVal){ alert('Date select karo'); return; }
+
+  var selDate = new Date(dateVal); selDate.setHours(0,0,0,0);
+  var selDateStr = fmtDDMMYYYY(selDate).replace(/\//g,'/'); // DD/MM/YYYY for comparison
+
+  // Build list of jobs scheduled on selected date across all 3 processes
+  var rows = [];
+  var seen = {};
+
+  function addRows(schedMap, procName){
+    Object.keys(schedMap).forEach(function(jcno){
+      var dStr = schedMap[jcno]; // DD/MM/YYYY
+      if(!dStr) return;
+      var parts = dStr.split('/');
+      if(parts.length < 3) return;
+      var d = new Date(+parts[2], +parts[1]-1, +parts[0]); d.setHours(0,0,0,0);
+      if(d.getTime() !== selDate.getTime()) return;
+      if(procFilter !== 'ALL' && procFilter !== procName.toLowerCase()) return;
+      var key = jcno+'|'+procName;
+      if(seen[key]) return; seen[key]=1;
+
+      // Find job details from agingRows or rawRows
+      var ag = D.agingRows.find(function(r){ return String(r.jcno).trim()===String(jcno).trim(); });
+      var raw = D._rawRows.find(function(r){ return String(r[D._keys.jcnoKey]).trim()===String(jcno).trim(); });
+      rows.push({
+        jcno: jcno,
+        jobName: (ag&&ag.jobName)||(raw&&D._keys.jobNameKey&&String(raw[D._keys.jobNameKey]||'').trim())||'',
+        cust: (ag&&ag.cust)||(raw&&String(raw[D._keys.custKey]||'').trim())||'—',
+        proc: procName,
+        schedDate: dStr,
+        revCommit: ag ? fmtDate(ag.revDate) : (raw&&D._keys.revCommitKey ? fmtDate(new Date(raw[D._keys.revCommitKey])) : '—'),
+        missed: false,
+        reason: '',
+        remark: ''
+      });
+    });
+  }
+
+  addRows(D.schedPrinting,'Printing');
+  addRows(D.schedPunching,'Punching');
+  addRows(D.schedPasting,'Pasting');
+
+  // Sort by customer then JCNO
+  rows.sort(function(a,b){ return a.cust.localeCompare(b.cust)||String(a.jcno).localeCompare(String(b.jcno)); });
+  _missRows = rows;
+
+  // Update summary cards
+  document.getElementById('mr-total').textContent = rows.length;
+  document.getElementById('mr-missed').textContent = rows.filter(function(r){return r.missed;}).length;
+  document.getElementById('mr-done').textContent = '—';
+  document.getElementById('mr-pending').textContent = rows.length;
+  document.getElementById('missrpt-info').textContent = rows.length + ' jobs scheduled on '+dateVal;
+  document.getElementById('mr-check-all').checked = false;
+
+  renderMissTable();
+}
+
+var MISS_REASONS = [
+  '','Machine Breakdown','Material Not Ready','Operator Absent','Job Cancelled','Previous Process Pending',
+  'Rush Priority Shifted','Power Failure','Low Capacity','Customer Hold','Other'
+];
+
+function renderMissTable(){
+  var tbody = document.getElementById('missrpt-tbody');
+  if(!_missRows.length){
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text2);padding:30px">Ya date la koni scheduled job nahit — schedule files upload kelya ka?</td></tr>';
+    document.getElementById('mr-total').textContent='0';
+    return;
+  }
+  var procColors={Printing:'#d0e8f5',Punching:'#e8e0f5',Pasting:'#fde9d9'};
+  var procFG={Printing:'#16537e',Punching:'#5c3fa0',Pasting:'#b5541a'};
+  var html='';
+  _missRows.forEach(function(r,i){
+    var rowCls = r.missed ? 'mr-row-missed' : '';
+    var reasonOpts = MISS_REASONS.map(function(rs){
+      return '<option value="'+rs+'"'+(r.reason===rs?' selected':'')+'>'+( rs||'— Reason select karo —')+'</option>';
+    }).join('');
+    var pc=procColors[r.proc]||'#eee', pf=procFG[r.proc]||'#333';
+    html+='<tr class="'+rowCls+'" id="mr-row-'+i+'">'
+      +'<td style="text-align:center"><input type="checkbox" class="mr-checkbox" '+(r.missed?'checked':'')+' onchange="mrToggleRow('+i+',this.checked)"></td>'
+      +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
+      +'<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName||'<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+      +'<td>'+r.cust+'</td>'
+      +'<td><span style="background:'+pc+';color:'+pf+';padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700">'+r.proc+'</span></td>'
+      +'<td class="num">'+r.schedDate+'</td>'
+      +'<td class="num">'+r.revCommit+'</td>'
+      +'<td><select class="mr-reason-sel" onchange="mrSetReason('+i+',this.value)"'+(r.missed?'':' disabled')+'>'+reasonOpts+'</select></td>'
+      +'<td><input type="text" class="mr-remark-inp" placeholder="Additional remark..." value="'+(r.remark||'')+'" onchange="mrSetRemark('+i+',this.value)"'+(r.missed?'':' disabled')+'></td>'
+      +'<td style="text-align:center"><span class="mr-status-badge" style="background:'+(r.missed?'#faeaea':'#e8f5e8')+';color:'+(r.missed?'#a02020':'#2a6e2a')+'">'+(r.missed?'❌ Missed':'✅ OK')+'</span></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+  updateMrSummary();
+}
+
+function mrToggleAll(checked){
+  _missRows.forEach(function(r,i){ r.missed=checked; if(!checked){r.reason='';r.remark='';} });
+  renderMissTable();
+  document.getElementById('mr-check-all').checked=checked;
+}
+function mrToggleRow(i,checked){
+  _missRows[i].missed=checked;
+  if(!checked){_missRows[i].reason='';_missRows[i].remark='';}
+  var row=document.getElementById('mr-row-'+i);
+  if(row){
+    row.className='mr-row-'+(checked?'missed':'');
+    row.querySelector('.mr-reason-sel').disabled=!checked;
+    row.querySelector('.mr-remark-inp').disabled=!checked;
+    var badge=row.querySelector('.mr-status-badge');
+    badge.style.background=checked?'#faeaea':'#e8f5e8';
+    badge.style.color=checked?'#a02020':'#2a6e2a';
+    badge.textContent=checked?'❌ Missed':'✅ OK';
+  }
+  updateMrSummary();
+}
+function mrSetReason(i,val){ _missRows[i].reason=val; }
+function mrSetRemark(i,val){ _missRows[i].remark=val; }
+
+function updateMrSummary(){
+  var missed=_missRows.filter(function(r){return r.missed;}).length;
+  document.getElementById('mr-missed').textContent=missed;
+  document.getElementById('mr-done').textContent=_missRows.length-missed;
+  document.getElementById('mr-pending').textContent=_missRows.length;
+}
+
+function saveMissReportEntries(){
+  var missedOnly=_missRows.filter(function(r){return r.missed;});
+  if(!missedOnly.length){ alert('Koi missed job check kela nahi!'); return; }
+  var dateVal=document.getElementById('missrpt-date').value;
+  var now=new Date();
+  var savedAt=fmtDate(now)+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  missedOnly.forEach(function(r){
+    D.missedEntries.push({
+      date:dateVal, jcno:r.jcno, jobName:r.jobName, cust:r.cust,
+      proc:r.proc, schedDate:r.schedDate, revCommit:r.revCommit,
+      reason:r.reason, remark:r.remark, savedAt:savedAt
+    });
+  });
+  try{ localStorage.setItem('aia_missed_entries', JSON.stringify(D.missedEntries)); }catch(e){}
+  renderMissHistoryTable();
+  alert('✅ '+missedOnly.length+' missed entries saved!');
+}
+
+function renderMissHistoryTable(){
+  var tbody=document.getElementById('mr-history-tbody');
+  var countEl=document.getElementById('mr-history-count');
+  if(!tbody) return;
+  if(!D.missedEntries||!D.missedEntries.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:20px">No saved entries yet</td></tr>';
+    if(countEl) countEl.textContent='0 entries';
+    return;
+  }
+  if(countEl) countEl.textContent=D.missedEntries.length+' entries';
+  var sorted=D.missedEntries.slice().reverse(); // latest first
+  var html='';
+  sorted.forEach(function(e,i){
+    var procColors={Printing:'#d0e8f5',Punching:'#e8e0f5',Pasting:'#fde9d9'};
+    var procFG={Printing:'#16537e',Punching:'#5c3fa0',Pasting:'#b5541a'};
+    var pc=procColors[e.proc]||'#eee', pf=procFG[e.proc]||'#333';
+    html+='<tr>'
+      +'<td>'+e.date+'</td>'
+      +'<td style="font-weight:700;color:#1a5fa8">'+e.jcno+'</td>'
+      +'<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(e.jobName||'')+'">'+( e.jobName||'—' )+'</td>'
+      +'<td>'+e.cust+'</td>'
+      +'<td><span style="background:'+pc+';color:'+pf+';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">'+e.proc+'</span></td>'
+      +'<td>'+(e.reason||'—')+'</td>'
+      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(e.remark||'')+'">'+( e.remark||'—' )+'</td>'
+      +'<td style="color:var(--text2);font-size:10px">'+e.savedAt+'</td>'
+      +'<td style="text-align:center"><button onclick="deleteMissEntry('+( D.missedEntries.length-1-i )+')" style="background:#faeaea;color:#a02020;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">🗑</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+function deleteMissEntry(idx){
+  if(!confirm('Hya entry delete karायची ka?')) return;
+  D.missedEntries.splice(idx,1);
+  try{ localStorage.setItem('aia_missed_entries', JSON.stringify(D.missedEntries)); }catch(e){}
+  renderMissHistoryTable();
+}
+
+function downloadMissReportExcel(mode){
+  if(!D.missedEntries||!D.missedEntries.length){ alert('Pehle kahi missed entries save karo!'); return; }
+  var now=new Date(); var today=now;
+  var entries=D.missedEntries.slice();
+
+  // Filter by week or month
+  if(mode==='weekly'){
+    // Current week (Mon-Sun)
+    var day=today.getDay()||7; // 1=Mon..7=Sun
+    var mon=new Date(today); mon.setDate(today.getDate()-day+1); mon.setHours(0,0,0,0);
+    var sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+    entries=entries.filter(function(e){
+      var d=new Date(e.date); return d>=mon&&d<=sun;
+    });
+  } else {
+    // Current month
+    entries=entries.filter(function(e){
+      var d=new Date(e.date);
+      return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
+    });
+  }
+
+  if(!entries.length){ alert('Ya '+( mode==='weekly'?'aathavdyat':'mahinyat' )+' koi missed entries nahit!'); return; }
+
+  var wb=XLSX.utils.book_new();
+
+  // Group by date for sheet
+  var dateGroups={}, dateOrder=[];
+  entries.forEach(function(e){
+    if(!dateGroups[e.date]){ dateGroups[e.date]=[]; dateOrder.push(e.date); }
+    dateGroups[e.date].push(e);
+  });
+
+  var grid=[], sg=[];
+  function addR(cols,sts){ grid.push(cols); sg.push(sts); }
+  var NF='#,##0';
+
+  var modeLabel=mode==='weekly'?'WEEKLY MISSED REPORT':'MONTHLY MISSED REPORT';
+  var periodLabel=mode==='weekly'
+    ? (fmtDDMMYYYY(new Date(today.getFullYear(),today.getMonth(),today.getDate()-(( today.getDay()||7 )-1)))+' to '+fmtDDMMYYYY(new Date(today.getFullYear(),today.getMonth(),today.getDate()-(( today.getDay()||7 )-1)+6)))
+    : (['January','February','March','April','May','June','July','August','September','October','November','December'][today.getMonth()]+' '+today.getFullYear());
+
+  var title=modeLabel+' — AIA Industries  |  Period: '+periodLabel+'  |  Total Missed: '+entries.length;
+  var hdrs=['Date','JCNO','Job Name','Customer','Process','Sched. Date','Rev. Commit','Missed Reason','Remark','Saved At'];
+
+  addR([title].concat(new Array(hdrs.length-1).fill('')),
+    hdrs.map(function(_,i){ return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:12},fill:{fgColor:{rgb:'FF1A1A2E'}},alignment:{horizontal:i===0?'left':'center',vertical:'center',wrapText:true}}; }));
+  addR(hdrs, hdrs.map(function(){
+    return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:9},fill:{fgColor:{rgb:'FF0F3460'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  }));
+
+  var rowNum=0;
+  dateOrder.forEach(function(dt){
+    var grp=dateGroups[dt];
+    // Date header row
+    addR([dt,'','','','','','','','',''].slice(0,hdrs.length),
+      [{font:{bold:true,color:{rgb:'FF8B1A1A'},sz:10},fill:{fgColor:{rgb:'FFFAEAEA'}},alignment:{horizontal:'left',vertical:'center'}}].concat(new Array(hdrs.length-1).fill({fill:{fgColor:{rgb:'FFFAEAEA'}}})));
+    grp.forEach(function(e){
+      rowNum++;
+      var bg=rowNum%2===0?'FFF0F4FF':'FFFFFFFF';
+      var st=function(clr,b){ return {font:{bold:!!b,color:{rgb:clr||'FF1A1A2E'},sz:9},fill:{fgColor:{rgb:bg}},alignment:{horizontal:'left',vertical:'center',wrapText:true}}; };
+      var stC=function(clr,b){ return {font:{bold:!!b,color:{rgb:clr||'FF1A1A2E'},sz:9},fill:{fgColor:{rgb:bg}},alignment:{horizontal:'center',vertical:'center',wrapText:true}}; };
+      var procBG={Printing:'FFD0E8F5',Punching:'FFE8E0F5',Pasting:'FFFDE9D9'};
+      var procFG2={Printing:'FF16537E',Punching:'FF5C3FA0',Pasting:'FFB5541A'};
+      addR([e.date,e.jcno,e.jobName||'',e.cust,e.proc,e.schedDate,e.revCommit,e.reason||'—',e.remark||'—',e.savedAt],
+        [stC('FF888888'),stC('FF1A5FA8',true),st(),st(),
+         {font:{bold:true,color:{rgb:procFG2[e.proc]||'FF333333'},sz:9},fill:{fgColor:{rgb:procBG[e.proc]||'FFEEE'}},alignment:{horizontal:'center',vertical:'center'}},
+         stC(),stC(),st('FF8B1A1A'),st('FF555555'),stC('FF888888')]);
+    });
+    // Subtotal
+    addR(['','↳ '+dt+': '+grp.length+' missed'].concat(new Array(hdrs.length-2).fill('')),
+      [{},{ font:{bold:true,color:{rgb:'FF0F3460'},sz:9},fill:{fgColor:{rgb:'FFD6E4F0'}},alignment:{horizontal:'left',vertical:'center'} }].concat(new Array(hdrs.length-2).fill({fill:{fgColor:{rgb:'FFD6E4F0'}}})));
+  });
+
+  var ws=XLSX.utils.aoa_to_sheet(grid);
+  for(var ri=0;ri<sg.length;ri++){
+    for(var ci=0;ci<sg[ri].length;ci++){
+      if(sg[ri][ci]){
+        var addr=XLSX.utils.encode_cell({r:ri,c:ci});
+        if(!ws[addr]) ws[addr]={t:'z',v:''};
+        ws[addr].s=sg[ri][ci];
+      }
+    }
+  }
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:hdrs.length-1}}];
+  ws['!cols']=[{wch:12},{wch:13},{wch:28},{wch:22},{wch:11},{wch:13},{wch:13},{wch:22},{wch:26},{wch:16}];
+  ws['!rows']=[{hpt:30},{hpt:22}];
+  ws['!freeze']={xSplit:0,ySplit:2};
+  ws['!autofilter']={ref:'A2:J2'};
+  ws['!pageSetup']={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+  ws['!margins']={left:0.35,right:0.35,top:0.45,bottom:0.45,header:0.15,footer:0.15};
+
+  var sheetName=mode==='weekly'?'Weekly Missed':'Monthly Missed';
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+
+  var fname='AIA_Missed_'+(mode==='weekly'?'Weekly':'Monthly')+'_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx';
+  XLSX.writeFile(wb,fname);
+}
+
+
+// ===================== OVERDUE JOBS TAB =====================
+function renderOverdueTab(){
+  if(!D.loaded) return;
+  var today=new Date(); today.setHours(0,0,0,0);
+
+  // Collect overdue: unique by jcno, revDate < today
+  var seen={};
+  var overdueRows=[];
+  D.agingRows.forEach(function(r){
+    if(seen[r.jcno]) return; seen[r.jcno]=1;
+    var rd=r.revDate instanceof Date ? r.revDate : new Date(r.revDate);
+    if(isNaN(rd)) return;
+    rd.setHours(0,0,0,0);
+    if(rd>=today) return; // not overdue
+    var daysOD=Math.floor((today-rd)/86400000);
+    var bk=daysOD<=7?'1-7':daysOD<=15?'8-15':daysOD<=30?'16-30':'30+';
+    overdueRows.push({jcno:r.jcno,jobName:r.jobName,cust:r.cust,status:r.status,pqty:r.pqty,revDate:rd,daysOD:daysOD,bucket:bk});
+  });
+  overdueRows.sort(function(a,b){return b.daysOD-a.daysOD;});
+  D._overdueRows=overdueRows;
+
+  // Summary cards
+  var b1=0,b2=0,b3=0,b4=0;
+  overdueRows.forEach(function(r){
+    if(r.bucket==='1-7') b1++;
+    else if(r.bucket==='8-15') b2++;
+    else if(r.bucket==='16-30') b3++;
+    else b4++;
+  });
+  document.getElementById('od-total').textContent=fmt(overdueRows.length);
+  document.getElementById('od-1-7').textContent=fmt(b1);
+  document.getElementById('od-8-15').textContent=fmt(b2);
+  document.getElementById('od-16-30').textContent=fmt(b3);
+  document.getElementById('od-30plus').textContent=fmt(b4);
+  var custSet={};
+  overdueRows.forEach(function(r){custSet[r.cust]=1;});
+  document.getElementById('od-custs').textContent=fmt(Object.keys(custSet).length);
+  document.getElementById('od-info').textContent=overdueRows.length+' overdue jobs';
+
+  // Chart
+  destroyChart('overdue');
+  var ctx=document.getElementById('chart-overdue');
+  if(ctx){
+    var custNames=[...new Set(overdueRows.map(function(r){return r.cust;}))].slice(0,15);
+    var buckets=['1-7','8-15','16-30','30+'];
+    var bColors=['#f9a825','#e65100','#b71c1c','#4a0000'];
+    var datasets=buckets.map(function(bk,bi){
+      return {
+        label:bk+' days overdue',
+        data:custNames.map(function(c){return overdueRows.filter(function(r){return r.cust===c&&r.bucket===bk;}).length;}),
+        backgroundColor:bColors[bi]+'cc',borderRadius:4
+      };
+    });
+    _charts['overdue']=new Chart(ctx,{
+      type:'bar',
+      data:{labels:custNames,datasets:datasets},
+      options:{
+        responsive:true,maintainAspectRatio:true,
+        plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:12}}},
+        scales:{
+          x:{stacked:true,ticks:{font:{size:9}},grid:{display:false}},
+          y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0efe9'}}
+        }
+      }
+    });
+  }
+
+  renderOverdueTable(overdueRows);
+}
+
+function renderOverdueTable(rows){
+  var bFG={'1-7':'#b5541a','8-15':'#a02020','16-30':'#8b0000','30+':'#4a0000'};
+  var bBG={'1-7':'#fff3e0','8-15':'#faeaea','16-30':'#f5d0d0','30+':'#ffe0e0'};
+  var html='';
+  var seen={};
+  var n=0;
+  rows.forEach(function(r){
+    if(seen[r.jcno]) return; seen[r.jcno]=1;
+    n++;
+    var fg=bFG[r.bucket]||'#333', bg=bBG[r.bucket]||'#fff';
+    html+='<tr style="background:'+bg+'">'
+      +'<td>'+n+'</td>'
+      +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
+      +'<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName||'<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+      +'<td>'+r.cust+'</td>'
+      +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
+      +'<td class="num">'+fmt(r.pqty)+'</td>'
+      +'<td class="num" style="color:'+fg+'">'+fmtDDMMYYYY(r.revDate)+'</td>'
+      +'<td class="num" style="font-weight:700;color:'+fg+';font-size:13px">'+r.daysOD+'</td>'
+      +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
+      +'</tr>';
+  });
+  document.getElementById('od-table').innerHTML=html||'<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:30px">🎉 Koi overdue jobs nahit!</td></tr>';
+}
+
+function filterOverdueTable(){
+  var q=(document.getElementById('od-search').value||'').toLowerCase();
+  if(!D._overdueRows) return;
+  var filtered=q?D._overdueRows.filter(function(r){
+    return String(r.jcno).toLowerCase().includes(q)||r.cust.toLowerCase().includes(q)||( r.jobName||'' ).toLowerCase().includes(q);
+  }):D._overdueRows;
+  renderOverdueTable(filtered);
+}
+
+function downloadOverdueExcel(){
+  if(!D._overdueRows||!D._overdueRows.length){ alert('Koi overdue jobs nahit!'); return; }
+
+  // Dedupe by jcno, sort by daysOD desc
+  var seen={};
+  var rows=D._overdueRows.filter(function(r){ if(seen[r.jcno]) return false; seen[r.jcno]=1; return true; });
+
+  var wb=XLSX.utils.book_new();
+  var today=new Date();
+  var hdrs=['#','JCNO','Job Name','Customer','Status','Pending Qty','Rev. Commit Date','Days Overdue','Bucket'];
+  var NC=hdrs.length; // 9 columns
+
+  // Border helper — thin all sides
+  var BDR={top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}};
+  var BDR_HDR={top:{style:'medium',color:{rgb:'FF000000'}},bottom:{style:'medium',color:{rgb:'FF000000'}},left:{style:'thin',color:{rgb:'FFFFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFFFF'}}};
+
+  // Style builders
+  function stTitle(){ return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:12},fill:{fgColor:{rgb:'FF1A1A2E'}},alignment:{horizontal:'left',vertical:'center',wrapText:false}}; }
+  function stHdr(){ return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:9},fill:{fgColor:{rgb:'FF8B0000'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:BDR_HDR}; }
+  function stData(fg,bg,al,bold,sz){
+    return {font:{bold:!!bold,color:{rgb:fg||'FF1A1A2E'},sz:sz||9},fill:{fgColor:{rgb:bg||'FFFFFFFF'}},alignment:{horizontal:al||'left',vertical:'center'},border:BDR};
+  }
+
+  var bkFG={'1-7':'FFB5541A','8-15':'FFA02020','16-30':'FF8B0000','30+':'FF4A0000'};
+  var bkBG={'1-7':'FFFFF3E0','8-15':'FFFAEAEA','16-30':'FFF5D0D0','30+':'FFFFE0E0'};
+
+  var grid=[], sg=[];
+  function addR(c,s){ grid.push(c); sg.push(s); }
+
+  // Row 0 — Title (merged)
+  var titleTxt='OVERDUE JOBS REPORT — AIA Industries  |  Date: '+fmtDDMMYYYY(today)+'  |  Total Overdue: '+rows.length;
+  addR([titleTxt].concat(new Array(NC-1).fill('')),
+    [stTitle()].concat(new Array(NC-1).fill({font:{sz:9},fill:{fgColor:{rgb:'FF1A1A2E'}}})));
+
+  // Row 1 — Column headers
+  addR(hdrs, hdrs.map(function(){ return stHdr(); }));
+
+  // Data rows — simple flat list, no customer grouping rows
+  rows.forEach(function(r,i){
+    var fg=bkFG[r.bucket]||'FF333333';
+    var bg=bkBG[r.bucket]||'FFFFFFFF';
+    // Alternate white rows slightly for readability within same bucket
+    var altBg = (i%2===0) ? bg : bg; // keep bucket color throughout
+    addR(
+      [i+1, r.jcno, r.jobName||'', r.cust, r.status, Math.round(r.pqty), fmtDDMMYYYY(r.revDate), r.daysOD, r.bucket+' days'],
+      [
+        stData('FF888888',altBg,'center'),       // #
+        stData('FF1A5FA8',altBg,'left',true),    // JCNO
+        stData('FF222222',altBg,'left'),          // Job Name
+        stData('FF0F3460',altBg,'left'),          // Customer
+        stData(fg,altBg,'center',true),           // Status
+        stData('FF0F3460',altBg,'right',false,9), // Pending Qty
+        stData(fg,altBg,'center'),                // Rev. Commit Date
+        stData(fg,altBg,'center',true,12),        // Days Overdue (larger font)
+        stData(fg,altBg,'center',true)            // Bucket
+      ]
+    );
+  });
+
+  // Grand total row
+  var totalQty=rows.reduce(function(s,r){return s+Math.round(r.pqty);},0);
+  var tBDR={top:{style:'medium',color:{rgb:'FF8B0000'}},bottom:{style:'medium',color:{rgb:'FF8B0000'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}};
+  function stTot(al){ return {font:{bold:true,color:{rgb:'FF8B0000'},sz:9},fill:{fgColor:{rgb:'FFFCE4E4'}},alignment:{horizontal:al||'left',vertical:'center'},border:tBDR}; }
+  addR(['','GRAND TOTAL','','',rows.length+' jobs',totalQty,'','',''],
+    [stTot('center'),stTot('left'),stTot(),stTot(),stTot('center'),stTot('right'),stTot(),stTot(),stTot()]);
+
+  // Build worksheet
+  var ws=XLSX.utils.aoa_to_sheet(grid);
+
+  // Apply styles
+  for(var ri=0;ri<sg.length;ri++){
+    for(var ci=0;ci<sg[ri].length;ci++){
+      if(sg[ri][ci]){
+        var addr=XLSX.utils.encode_cell({r:ri,c:ci});
+        if(!ws[addr]) ws[addr]={t:'z',v:''};
+        ws[addr].s=sg[ri][ci];
+      }
+    }
+  }
+
+  // Merges: title row full width
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:NC-1}}];
+
+  // Column widths
+  ws['!cols']=[
+    {wch:4},   // #
+    {wch:14},  // JCNO
+    {wch:36},  // Job Name
+    {wch:28},  // Customer
+    {wch:16},  // Status
+    {wch:12},  // Pending Qty
+    {wch:16},  // Rev. Commit Date
+    {wch:13},  // Days Overdue
+    {wch:14}   // Bucket
+  ];
+
+  // Row heights
+  var rh=[{hpt:28},{hpt:22}];
+  for(var rhi=0;rhi<rows.length;rhi++) rh.push({hpt:15});
+  rh.push({hpt:18}); // total row
+  ws['!rows']=rh;
+
+  ws['!freeze']={xSplit:0,ySplit:2};
+  ws['!autofilter']={ref:'A2:I'+( rows.length+2 )};
+  ws['!pageSetup']={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+  ws['!margins']={left:0.35,right:0.35,top:0.45,bottom:0.45,header:0.15,footer:0.15};
+
+  XLSX.utils.book_append_sheet(wb,ws,'Overdue Jobs');
+  XLSX.writeFile(wb,'AIA_Overdue_Jobs_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx');
+}
+
 // Init
 window.onload=function(){
   document.getElementById('date-display').textContent='Upload AIA Track Record to load dashboard';
+  // Set today's date in missed report date picker
+  var td = new Date();
+  var mm = ('0'+(td.getMonth()+1)).slice(-2);
+  var dd2= ('0'+td.getDate()).slice(-2);
+  document.getElementById('missrpt-date').value = td.getFullYear()+'-'+mm+'-'+dd2;
+  // Load saved missed entries from localStorage
+  try{
+    var saved = localStorage.getItem('aia_missed_entries');
+    if(saved) D.missedEntries = JSON.parse(saved);
+  }catch(e){ D.missedEntries=[]; }
+  renderMissHistoryTable();
 };
 </script>
 </body>

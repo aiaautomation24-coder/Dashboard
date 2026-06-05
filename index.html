@@ -31,6 +31,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .hbtn-white{background:#fff;color:#1a1a2e}.hbtn-white:hover{background:#e8e8e8}
 .hbtn-green{background:#1a7a2a;color:#fff}.hbtn-green:hover{background:#155e22}
 .hbtn-amber{background:#c47a00;color:#fff}.hbtn-amber:hover{background:#a06000}
+
+/* COMPANY SWITCHER */
+.co-switch{display:flex;align-items:center;background:#0d0d1e;border-radius:999px;padding:3px;gap:2px;border:1px solid #3a3a5a;margin-right:6px}
+.co-btn{border:none;border-radius:999px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.05em}
+.co-btn.active-aia{background:#1a5fa8;color:#fff;box-shadow:0 2px 6px rgba(26,95,168,.5)}
+.co-btn.active-gp{background:#1a7a2a;color:#fff;box-shadow:0 2px 6px rgba(26,122,42,.5)}
+.co-btn.inactive{background:transparent;color:#888}
+.co-btn.inactive:hover{color:#ccc}
 .file-badge{font-size:10px;padding:3px 8px;border-radius:999px;font-weight:600}
 .fb-loaded{background:#e8f5e8;color:#2a6e2a}
 .fb-empty{background:#faeaea;color:#a02020}
@@ -223,39 +231,64 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
 
 <div class="header">
   <div class="header-left">
-    <h1>AIA Job Track Dashboard</h1>
+    <h1 id="header-title">AIA Job Track Dashboard</h1>
     <p id="date-display">Upload files to load data</p>
   </div>
   <div class="header-right">
+    <!-- COMPANY SWITCHER -->
+    <div class="co-switch">
+      <button class="co-btn active-aia" id="co-aia" onclick="switchCompany('AIA')">AIA</button>
+      <button class="co-btn inactive" id="co-gp" onclick="switchCompany('GP')">GP</button>
+    </div>
     <span id="file-status"></span>
     <!-- AIA Track Record Upload -->
-    <label class="hbtn hbtn-white" for="xlFile" title="Upload AIA Track Record (.xlsm/.xlsx)">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-      AIA Track Record
-    </label>
-    <input type="file" id="xlFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadTrackRecord(this)">
-    <span id="aia-badge" class="file-badge fb-empty">Not loaded</span>
+    <div id="aia-upload-group" style="display:flex;align-items:center;gap:6px">
+      <label class="hbtn hbtn-white" for="xlFile" title="Upload AIA Track Record (.xlsm/.xlsx)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        AIA Track Record
+      </label>
+      <input type="file" id="xlFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadTrackRecord(this,'AIA')">
+      <span id="aia-badge" class="file-badge fb-empty">Not loaded</span>
+    </div>
+    <!-- GP Track Record Upload -->
+    <div id="gp-upload-group" style="display:none;align-items:center;gap:6px">
+      <label class="hbtn" style="background:#1a7a2a;color:#fff;cursor:pointer" for="gpFile" title="Upload GP Track Record (.xlsx/.xls)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        GP Track Record
+      </label>
+      <input type="file" id="gpFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadTrackRecord(this,'GP')">
+      <span id="gp-badge" class="file-badge fb-empty">Not loaded</span>
+    </div>
 
-    <!-- Printing Schedule Upload -->
-    <label class="hbtn" style="background:#16537e;color:#fff;cursor:pointer" for="printFile" title="Upload Printing Schedule">
-      🖨️ Printing
-    </label>
-    <input type="file" id="printFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'printing')">
-    <span id="print-badge" class="file-badge fb-empty">Not loaded</span>
+    <!-- AIA Schedule Uploads (hidden when GP is active) -->
+    <div id="aia-schedule-group" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <label class="hbtn" style="background:#16537e;color:#fff;cursor:pointer" for="printFile" title="Upload Printing Schedule">
+        🖨️ Printing
+      </label>
+      <input type="file" id="printFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'printing')">
+      <span id="print-badge" class="file-badge fb-empty">Not loaded</span>
 
-    <!-- Punching Schedule Upload -->
-    <label class="hbtn" style="background:#5c3fa0;color:#fff;cursor:pointer" for="punchFile" title="Upload Punching Schedule">
-      👊 Punching
-    </label>
-    <input type="file" id="punchFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'punching')">
-    <span id="punch-badge" class="file-badge fb-empty">Not loaded</span>
+      <label class="hbtn" style="background:#5c3fa0;color:#fff;cursor:pointer" for="punchFile" title="Upload Punching Schedule">
+        👊 Punching
+      </label>
+      <input type="file" id="punchFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'punching')">
+      <span id="punch-badge" class="file-badge fb-empty">Not loaded</span>
 
-    <!-- Pasting Schedule Upload -->
-    <label class="hbtn" style="background:#b5541a;color:#fff;cursor:pointer" for="pasteFile" title="Upload Pasting Schedule">
-      📋 Pasting
-    </label>
-    <input type="file" id="pasteFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'pasting')">
-    <span id="paste-badge" class="file-badge fb-empty">Not loaded</span>
+      <label class="hbtn" style="background:#b5541a;color:#fff;cursor:pointer" for="pasteFile" title="Upload Pasting Schedule">
+        📋 Pasting
+      </label>
+      <input type="file" id="pasteFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'pasting')">
+      <span id="paste-badge" class="file-badge fb-empty">Not loaded</span>
+    </div>
+
+    <!-- GP Folding Schedule Upload (hidden when AIA is active) -->
+    <div id="gp-schedule-group" style="display:none;align-items:center;gap:6px">
+      <label class="hbtn" style="background:#16537e;color:#fff;cursor:pointer" for="foldFile" title="Upload Folding Schedule (col B=DocID, col R=MR Date)">
+        📂 Folding Schedule
+      </label>
+      <input type="file" id="foldFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadFoldingSchedule(this)">
+      <span id="fold-badge" class="file-badge fb-empty">Not loaded</span>
+    </div>
 
     <button class="hbtn hbtn-green" onclick="downloadExcel()">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -309,20 +342,23 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
     <span>Last Updated: <b id="last-update">—</b></span>
     <span>Total Records: <b id="total-records">—</b></span>
   </div>
-  <div class="cards-wrap"><div class="cards">
-    <div class="card c-blue"><div class="cl">Total Jobs</div><div class="cv" id="ov-total">—</div><div class="cs" id="ov-range">—</div></div>
-    <div class="card c-green"><div class="cl">Dispatched (DD)</div><div class="cv" id="ov-dd">—</div><div class="cs" id="ov-dd-pct">—</div></div>
-    <div class="card c-amber"><div class="cl">Not Started</div><div class="cv" id="ov-ns">—</div><div class="cs" id="ov-ns-pct">—</div></div>
-    <div class="card c-red"><div class="cl">Cancelled</div><div class="cv" id="ov-cancel">—</div><div class="cs" id="ov-cancel-pct">—</div></div>
-    <div class="card c-purple"><div class="cl">PH In Floor</div><div class="cv" id="ov-ph">—</div><div class="cs">Floor process</div></div>
-    <div class="card c-teal"><div class="cl">Screen In Floor</div><div class="cv" id="ov-screen">—</div><div class="cs">Floor process</div></div>
-    <div class="card"><div class="cl">Pasting In Floor</div><div class="cv" id="ov-pasting">—</div><div class="cs">Floor process</div></div>
-    <div class="card" style="background:#fdf5e0"><div class="cl">FOIL</div><div class="cv" id="ov-foil" style="color:#c47a2b">—</div><div class="cs">Floor process</div></div>
-    <div class="card" style="background:#e8f5e8"><div class="cl">Front Bal</div><div class="cv" id="ov-frontbal" style="color:#2a6e2a">—</div><div class="cs">Floor process</div></div>
-    <div class="card" style="background:#e8f0fb"><div class="cl">Lamination</div><div class="cv" id="ov-lam" style="color:#1a5fa8">—</div><div class="cs">Floor process</div></div>
-    <div class="card" style="background:#faeaea"><div class="cl">VDP</div><div class="cv" id="ov-vdp" style="color:#a02020">—</div><div class="cs">Floor process</div></div>
-    <div class="card" style="background:#f5f5f5"><div class="cl">VR</div><div class="cv" id="ov-vr" style="color:#555555">—</div><div class="cs">Floor process</div></div>
-    <div class="card"><div class="cl">Floor Jobs Total</div><div class="cv" id="ov-floor">—</div><div class="cs">In production</div></div>
+  <div class="cards-wrap"><div class="cards" id="overview-cards">
+    <div class="card c-blue"  id="card-total"><div class="cl">Total Jobs</div><div class="cv" id="ov-total">—</div><div class="cs" id="ov-range">—</div></div>
+    <div class="card c-green" id="card-dd"><div class="cl">Dispatched (DD)</div><div class="cv" id="ov-dd">—</div><div class="cs" id="ov-dd-pct">—</div></div>
+    <div class="card c-amber" id="card-ns"><div class="cl">Not Started</div><div class="cv" id="ov-ns">—</div><div class="cs" id="ov-ns-pct">—</div></div>
+    <div class="card c-red"   id="card-cancel"><div class="cl">Cancelled</div><div class="cv" id="ov-cancel">—</div><div class="cs" id="ov-cancel-pct">—</div></div>
+    <div class="card c-purple" id="card-ph"><div class="cl">PH In Floor</div><div class="cv" id="ov-ph">—</div><div class="cs">Floor process</div></div>
+    <div class="card c-teal"   id="card-screen"><div class="cl">Screen In Floor</div><div class="cv" id="ov-screen">—</div><div class="cs">Floor process</div></div>
+    <div class="card"          id="card-pasting"><div class="cl">Pasting In Floor</div><div class="cv" id="ov-pasting">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#fdf5e0" id="card-foil"><div class="cl">FOIL</div><div class="cv" id="ov-foil" style="color:#c47a2b">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#e8f5e8" id="card-frontbal"><div class="cl">Front Bal</div><div class="cv" id="ov-frontbal" style="color:#2a6e2a">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#e8f0fb" id="card-lam"><div class="cl">Lamination</div><div class="cv" id="ov-lam" style="color:#1a5fa8">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#faeaea" id="card-vdp"><div class="cl">VDP</div><div class="cv" id="ov-vdp" style="color:#a02020">—</div><div class="cs">Floor process</div></div>
+    <div class="card" style="background:#f5f5f5" id="card-vr"><div class="cl">VR</div><div class="cv" id="ov-vr" style="color:#555555">—</div><div class="cs">Floor process</div></div>
+    <div class="card" id="card-floor"><div class="cl">Floor Jobs Total</div><div class="cv" id="ov-floor">—</div><div class="cs">In production</div></div>
+    <!-- GP-only cards (hidden in AIA mode) -->
+    <div class="card" id="card-fold"   style="display:none;background:#e0f5f5"><div class="cl">FOLD</div><div class="cv" id="ov-fold" style="color:#0d7377">—</div><div class="cs">Floor process</div></div>
+    <div class="card" id="card-outsert" style="display:none;background:#eeebfa"><div class="cl">Outsert Folding</div><div class="cv" id="ov-outsert" style="color:#5c3fa0">—</div><div class="cs">Floor process</div></div>
   </div></div>
 
   <!-- OVERVIEW CHARTS -->
@@ -469,7 +505,7 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
     <div class="sec-head"><h2>Aging Detail — All Pending Jobs</h2><span id="aging-info">—</span></div>
     <div class="search-box"><input type="text" id="aging-search" placeholder="Search customer or JCNO..." oninput="filterAgingTable()"></div>
     <div class="table-wrap"><table>
-      <thead><tr>
+      <thead id="aging-thead"><tr>
         <th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>
         <th class="num">Pending Qty</th><th class="num">Cut SH</th>
         <th class="num">Rev. Commit Date</th><th class="num">Days Pending</th>
@@ -601,9 +637,10 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
       <label style="font-size:11px;font-weight:700;color:var(--text2)">Process:</label>
       <select id="missrpt-proc" style="padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;min-width:140px">
         <option value="ALL">All Processes</option>
-        <option value="printing">🖨️ Printing</option>
-        <option value="punching">👊 Punching</option>
-        <option value="pasting">📋 Pasting</option>
+        <option value="printing" class="aia-proc-opt">🖨️ Printing</option>
+        <option value="punching" class="aia-proc-opt">👊 Punching</option>
+        <option value="pasting"  class="aia-proc-opt">📋 Pasting</option>
+        <option value="folding"  class="gp-proc-opt" style="display:none">📂 Folding</option>
       </select>
       <button onclick="renderMissReport()" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">Load</button>
       <div style="margin-left:auto;display:flex;gap:8px">
@@ -703,6 +740,131 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
 </div><!-- /main -->
 
 <script>
+// ===================== CARD VISIBILITY =====================
+// GP: only Total Jobs, DD, Not Started, Cancelled, FOLD, Outsert Folding
+// AIA: all cards except GP-only ones
+var GP_ONLY_CARDS   = ['card-fold','card-outsert'];
+var AIA_ONLY_CARDS  = ['card-ph','card-screen','card-pasting','card-foil',
+                       'card-frontbal','card-lam','card-vdp','card-vr','card-floor'];
+
+function updateCardVisibility(){
+  var isGP = (COMPANY === 'GP');
+  AIA_ONLY_CARDS.forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display = isGP ? 'none' : '';
+  });
+  GP_ONLY_CARDS.forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display = isGP ? '' : 'none';
+  });
+  // Missed report process dropdown
+  document.querySelectorAll('.aia-proc-opt').forEach(function(el){ el.style.display = isGP ? 'none' : ''; });
+  document.querySelectorAll('.gp-proc-opt').forEach(function(el){ el.style.display = isGP ? '' : 'none'; });
+  // Reset dropdown to ALL when switching
+  var proc = document.getElementById('missrpt-proc');
+  if(proc) proc.value = 'ALL';
+}
+
+// ===================== COMPANY STATE =====================
+var COMPANY = 'AIA'; // 'AIA' or 'GP'
+
+// Separate state stores for each company
+var D_AIA = null; // will hold AIA state snapshot
+var D_GP  = null; // will hold GP state snapshot
+
+function switchCompany(co) {
+  if (co === COMPANY) return;
+
+  // Save current D state into the current company's slot
+  if (COMPANY === 'AIA') {
+    D_AIA = cloneState(D);
+  } else {
+    D_GP = cloneState(D);
+  }
+
+  COMPANY = co;
+
+  // Load the target company's state into D
+  var saved = co === 'AIA' ? D_AIA : D_GP;
+  if (saved) {
+    restoreState(D, saved);
+  } else {
+    // Reset D to empty
+    resetDState();
+  }
+
+  // Update UI
+  var coAia = document.getElementById('co-aia');
+  var coGp  = document.getElementById('co-gp');
+  coAia.className = 'co-btn ' + (co === 'AIA' ? 'active-aia' : 'inactive');
+  coGp.className  = 'co-btn ' + (co === 'GP'  ? 'active-gp'  : 'inactive');
+
+  document.getElementById('aia-upload-group').style.display = (co === 'AIA') ? 'flex' : 'none';
+  document.getElementById('gp-upload-group').style.display  = (co === 'GP')  ? 'flex' : 'none';
+  document.getElementById('aia-schedule-group').style.display = (co === 'AIA') ? 'flex' : 'none';
+  document.getElementById('gp-schedule-group').style.display  = (co === 'GP')  ? 'flex' : 'none';
+  updateCardVisibility();
+
+  document.getElementById('header-title').textContent = co + ' Job Track Dashboard';
+  document.title = co + ' Job Track Dashboard';
+
+  // Re-render or show empty state
+  if (D.loaded) {
+    renderAll();
+    renderMissReport();
+  } else {
+    clearAllPanels();
+  }
+}
+
+function cloneState(src) {
+  // Shallow clone of top-level D properties
+  var c = {};
+  for (var k in src) {
+    if (src.hasOwnProperty(k)) {
+      c[k] = src[k];
+    }
+  }
+  return c;
+}
+
+function restoreState(target, src) {
+  for (var k in src) {
+    if (src.hasOwnProperty(k)) {
+      target[k] = src[k];
+    }
+  }
+}
+
+function resetDState() {
+  D.loaded = false;
+  D.lastUpdate = '—';
+  D.startDate = new Date('2026-01-01');
+  D.endDate = new Date();
+  D.totalJobs = 0; D.dd = 0; D.ns = 0; D.cancel = 0; D.ph = 0; D.screen = 0; D.pasting = 0;
+  D.monthly = []; D.customers = []; D.missingCust = []; D.missingByProcess = [];
+  D.floorJobs = []; D.foldJobs = []; D.agingRows = [];
+  D.schedPrinting = {}; D.schedPunching = {}; D.schedPasting = {}; D.schedFolding = {};
+  D._rawRows = []; D._keys = {}; D._filterFrom = null; D._filterTo = null;
+  D.missedEntries = [];
+  document.getElementById('date-display').textContent = 'Upload files to load data';
+  document.getElementById('file-status').textContent = '';
+}
+
+function clearAllPanels() {
+  // Reset summary cards and tables to empty placeholders
+  var empties = ['total-records','ov-total','ov-dd','ov-ns','ov-cancel','ov-ph','ov-screen','ov-pasting'];
+  empties.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  ['monthly-table','status-table','floor-table','fold-table','missing-process-table',
+   'missing-cust-table','cust-table','aging-table'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '<tr><td colspan="20" style="text-align:center;color:var(--text2);padding:20px">Upload ' + COMPANY + ' Track Record to load data</td></tr>';
+  });
+  document.getElementById('date-display').textContent = 'Upload files to load data';
+  document.getElementById('file-status').textContent = '';
+}
+
 // ===================== STATE =====================
 var D = {
   loaded: false,
@@ -721,6 +883,7 @@ var D = {
   schedPrinting: {},
   schedPunching: {},
   schedPasting: {},
+  schedFolding: {},
   // Raw data storage for re-filtering
   _rawRows: [],
   _keys: {},
@@ -815,7 +978,7 @@ function reProcessAndRender(){
     return !isNaN(d) && d >= from && d <= to;
   });
 
-  if(!allRows.length){ alert('Selected date range mein koi Revised Commitment Date data nahi mila!'); return; }
+  if(!allRows.length){ alert('Selected date range mein koi data nahi mila! Date range adjust karo.'); return; }
   computeFromRows(allRows, k, from, to);
   renderAll();
 }
@@ -988,9 +1151,87 @@ function parseScheduleSheet(rows){
   return map;
 }
 
-// ===================== LOAD AIA TRACK RECORD =====================
-function loadTrackRecord(input){
+// ===================== GP FOLDING SCHEDULE LOADER =====================
+// Col B (index 1) = DocID / JCNO, Col R (index 17) = MR Date
+function loadFoldingSchedule(input){
   var file = input.files[0]; if(!file) return;
+  document.getElementById('fold-badge').textContent = 'Loading...';
+  document.getElementById('fold-badge').className = 'file-badge fb-empty';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,bookVBA:false});
+      // Use 'Full Plan' sheet if exists, else first sheet
+      var sheetName = wb.SheetNames.indexOf('Full Plan') >= 0 ? 'Full Plan' : wb.SheetNames[0];
+      var ws = wb.Sheets[sheetName];
+      if(!ws){ document.getElementById('fold-badge').textContent='✗ No sheet'; return; }
+      var raw = XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+
+      var map = {};
+      var MONTHS = {
+        JANUARY:0,FEBRUARY:1,MARCH:2,APRIL:3,MAY:4,JUNE:5,
+        JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11,
+        JAN:0,FEB:1,MAR:2,APR:3,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11
+      };
+
+      function excelSerialToDate(serial){
+        if(typeof serial !== 'number' || serial < 45292 || serial > 46762) return null;
+        var tmp = new Date((serial - 25569) * 86400000);
+        return new Date(tmp.getUTCFullYear(), tmp.getUTCMonth(), tmp.getUTCDate());
+      }
+
+      function tryDate(v){
+        if(v === null || v === undefined || v === '') return null;
+        if(typeof v === 'number') return excelSerialToDate(v);
+        var s = String(v).trim(); if(!s) return null;
+        var m1 = s.match(/(\d{1,2})\s+([A-Z]+)\s+(\d{4})/i);
+        if(m1){ var mo=MONTHS[m1[2].toUpperCase()]; if(mo!==undefined){ var d=new Date(+m1[3],mo,+m1[1]); if(!isNaN(d.getTime())) return d; } }
+        var m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if(m2){ var d=new Date(+m2[3],+m2[2]-1,+m2[1]); if(!isNaN(d.getTime())) return d; }
+        var m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m3){ var d=new Date(+m3[1],+m3[2]-1,+m3[3]); if(!isNaN(d.getTime())) return d; }
+        return null;
+      }
+
+      function fmtD(d){ return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+
+      function isJCNO(v){
+        if(!v && v!==0) return false;
+        return /^[A-Z0-9]{2,}\/[0-9]+/i.test(String(v).trim());
+      }
+
+      for(var r=0; r<raw.length; r++){
+        var row = raw[r]; if(!row||!row.length) continue;
+        var colB = row[1];  // Column B = index 1 = DocID / JCNO
+        var colR = row[17]; // Column R = index 17 = MR Date / Fold Date
+        if(!colB) continue;
+        if(isJCNO(colB)){
+          var d = tryDate(colR);
+          if(d){
+            // Normalize: trim whitespace only (preserve slashes and digits)
+            var jcno = String(colB).trim();
+            if(!map[jcno]) map[jcno] = fmtD(d);
+          }
+        }
+      }
+
+      D.schedFolding = map;
+      var count = Object.keys(map).length;
+      document.getElementById('fold-badge').textContent = '✓ '+count+' jobs';
+      document.getElementById('fold-badge').className = 'file-badge fb-loaded';
+      if(D.loaded) renderAgingTab();
+    }catch(err){
+      document.getElementById('fold-badge').textContent = '✗ Error';
+      console.error('Folding schedule load error:', err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+function loadTrackRecord(input, co){
+  var file = input.files[0]; if(!file) return;
+  var loadCo = co || COMPANY;
   showLoading('Reading ' + file.name + '...');
   setProgress(10);
   document.getElementById('file-status').textContent = 'Reading '+file.name+'...';
@@ -1000,10 +1241,16 @@ function loadTrackRecord(input){
     try{
       var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true,bookVBA:false,bookFiles:false,bookProps:false});
       // Track record sheet dhundho
-      var trSheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().includes('track') || n.toLowerCase().includes('record'); }) || wb.SheetNames[0];
+      var trSheetName;
+      if(loadCo === 'GP'){
+        trSheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().includes('track') || n.toLowerCase().includes('record'); });
+        if(!trSheetName) trSheetName = wb.SheetNames.find(function(n){ return !n.toLowerCase().includes('floor') && n !== 'Sheet2'; }) || wb.SheetNames[0];
+      } else {
+        trSheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().includes('track') || n.toLowerCase().includes('record'); }) || wb.SheetNames[0];
+      }
       var trSheet = wb.Sheets[trSheetName];
-      var fjSheet = wb.Sheets['FLOOR JOBS'];
-      // MAX_COLS cap — blank columns ignore
+      var fjSheet = wb.Sheets['FLOOR JOBS'] || (loadCo === 'GP' ? wb.Sheets['Sheet2'] : null);
+      // MAX_COLS cap
       if(trSheet && trSheet['!ref']){
         var range = XLSX.utils.decode_range(trSheet['!ref']);
         if(range.e.c > 120) range.e.c = 120;
@@ -1012,10 +1259,11 @@ function loadTrackRecord(input){
       setTimeout(function(){
         try{
           var trData = XLSX.utils.sheet_to_json(trSheet,{defval:''});
-          processTrackRecord(trData);
+          processTrackRecord(trData, loadCo);
           if(fjSheet) processFloorJobs(fjSheet);
-          document.getElementById('aia-badge').textContent = '✓ '+file.name.substring(0,20);
-          document.getElementById('aia-badge').className = 'file-badge fb-loaded';
+          var badgeId = loadCo === 'GP' ? 'gp-badge' : 'aia-badge';
+          document.getElementById(badgeId).textContent = '✓ '+file.name.substring(0,20);
+          document.getElementById(badgeId).className = 'file-badge fb-loaded';
           document.getElementById('file-status').textContent = '✓ '+trData.length+' rows loaded';
         }catch(err2){
           document.getElementById('file-status').textContent = '✗ '+err2.message;
@@ -1023,19 +1271,24 @@ function loadTrackRecord(input){
       },100);
     }catch(err){
       document.getElementById('file-status').textContent = '✗ '+err.message;
-      document.getElementById('aia-badge').textContent = 'Error';
+      var badgeId = loadCo === 'GP' ? 'gp-badge' : 'aia-badge';
+      document.getElementById(badgeId).textContent = 'Error';
     }
     },100);
   };
   reader.readAsArrayBuffer(file);
 }
-
-function processTrackRecord(data){
+function processTrackRecord(data, loadCo){
   if(!data.length) return;
+  var loadCompany = loadCo || COMPANY;
   var keys = Object.keys(data[0]);
   var dateKey = keys.find(function(k){return k.toLowerCase().includes('doc')&&k.toLowerCase().includes('date')}) || keys[1];
   var statusKey = 'Job_Status';
-  var custKey = 'CUSTOMER NAME';
+  // custKey: AIA uses 'CUSTOMER NAME', GP Sheet1 uses 'Client  Name' but track record sheet also uses 'CUSTOMER NAME'
+  var custKey = keys.find(function(k){
+    var kl = k.toLowerCase().replace(/\s+/g,'');
+    return kl === 'customername' || kl === 'clientname' || kl.includes('customer') || kl.includes('client');
+  }) || 'CUSTOMER NAME';
   var pendKey = keys.find(function(k){return k.includes('Pending')}) || 'Pending\nQty ';
   var cutKey  = keys.find(function(k){return k.includes('Cut')}) || 'Tot. Cut\n   SH';
   var nextKey = 'NextProcess';
@@ -1045,11 +1298,29 @@ function processTrackRecord(data){
     return kl.includes('jobname') || kl.includes('job_name') || kl.includes('jobdescription') ||
            kl.includes('jobdesc') || kl.includes('description') || kl.includes('jobtitle') ||
            (k.toLowerCase().includes('job') && k.toLowerCase().includes('name'));
-  }) || keys.find(function(k){ return k.toLowerCase().includes('name') && !k.toLowerCase().includes('customer'); }) || '';
-  var revCommitKey = keys.find(function(k){
-    return k.toLowerCase().replace(/\s+/g,'').includes('revisedcommit') ||
-           k.toLowerCase().replace(/\s+/g,'').includes('revisedcommitement');
-  }) || 'Revised Commitement date';
+  }) || keys.find(function(k){ return k.toLowerCase().includes('name') && !k.toLowerCase().includes('customer') && !k.toLowerCase().includes('client'); }) || '';
+  // revCommitKey: GP uses 'revised commitement date' (col CD=81), AIA same
+  var revCommitKey;
+  if(loadCompany === 'GP'){
+    // GP: prefer 'revised commitement date' (col CD), fallback to 'Commit Date' (col L)
+    revCommitKey = keys.find(function(k){
+      var kl = k.toLowerCase().replace(/[\s_\n]/g,'');
+      return kl === 'revisedcommitementdate' || kl === 'revisedcommitement' ||
+             kl.includes('revisedcommit');
+    }) || keys.find(function(k){
+      var kl = k.toLowerCase().replace(/\s+/g,'');
+      return kl === 'commitdate' || kl.includes('commitdate');
+    }) || keys.find(function(k){
+      var kl = k.toLowerCase().replace(/\s+/g,'');
+      return kl.includes('delivery') || kl.includes('deliveryschedule');
+    }) || 'revised commitement date';
+  } else {
+    // AIA: use Revised Commitement date
+    revCommitKey = keys.find(function(k){
+      return k.toLowerCase().replace(/\s+/g,'').includes('revisedcommit') ||
+             k.toLowerCase().replace(/\s+/g,'').includes('revisedcommitement');
+    }) || 'Revised Commitement date';
+  }
 
   var dispatchDateKey = keys.find(function(k){
     var kl = k.toLowerCase().replace(/\s+/g,'');
@@ -1093,7 +1364,7 @@ function processTrackRecord(data){
     return !isNaN(d) && d >= D._filterFrom && d <= D._filterTo;
   });
 
-  if(!allRows.length){ alert('No data found in Revised Commitment Date range'); return; }
+  if(!allRows.length){ alert('No data found in filter date range. For GP, using Commit Date column. Try adjusting the date range.'); return; }
   setProgress(60);
   document.getElementById('loading-text').textContent = 'Computing metrics...';
   setTimeout(function(){
@@ -1183,7 +1454,9 @@ function computeFromRows(rows, k, fromD, toD){
 
   // ---- AGING REPORT ----
   var today3 = new Date(); today3.setHours(23,59,59,999);
-  var pendingStatuses = ['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR','Job Not Started','LABLE CUTTING'];
+  var pendingStatuses = (COMPANY === 'GP')
+    ? ['FOLD','OUTSERT FOLDING','Job Not Started']
+    : ['PH','SCREEN','PASTING','FOIL','FRONT BAL','LAMINATION','VDP','VR','Job Not Started','LABLE CUTTING'];
   D.agingRows = D._rawRows.filter(function(r){
     if(pendingStatuses.indexOf(r[statusKey]) < 0) return false;
     var rd = new Date(r[revCommitKey]);
@@ -1193,7 +1466,7 @@ function computeFromRows(rows, k, fromD, toD){
     var days = Math.floor((today3 - rd) / 86400000);
     var bucket = days <= 7 ? '0-7' : days <= 15 ? '8-15' : days <= 30 ? '16-30' : '30+';
     return {
-      jcno: r[k.jcnoKey],
+      jcno: String(r[k.jcnoKey]||'').trim(),
       jobName: k.jobNameKey ? String(r[k.jobNameKey]||'').trim() : '',
       cust: String(r[k.custKey]).trim(),
       status: r[statusKey],
@@ -1224,7 +1497,9 @@ function computeFromRows(rows, k, fromD, toD){
   }).sort(function(a,b){ return b.days - a.days; });
 
   // Missing list — filter by Revised Commitment Date using same fromD/toD as main filter
-  var allowedMiss = ['LABLE CUTTING','FOIL','FRONT BAL','Job Not Started','LAMINATION','PASTING','PH','SCREEN','VDP','VR'];
+  var allowedMiss = (COMPANY === 'GP')
+    ? ['Job Not Started','FOLD','OUTSERT FOLDING']
+    : ['LABLE CUTTING','FOIL','FRONT BAL','Job Not Started','LAMINATION','PASTING','PH','SCREEN','VDP','VR'];
   var missRows = D._rawRows.filter(function(r){
     if(allowedMiss.indexOf(r[statusKey]) < 0) return false;
     var rd = new Date(r[revCommitKey]);
@@ -1232,7 +1507,9 @@ function computeFromRows(rows, k, fromD, toD){
     return rd >= fromD && rd <= toD;
   });
 
-  var missProcesses = ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL','LABLE CUTTING'];
+  var missProcesses = (COMPANY === 'GP')
+    ? ['FOLD','OUTSERT FOLDING','Job Not Started']
+    : ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL','LABLE CUTTING'];
   var missMap={};
   missRows.forEach(function(r){
     var c=String(r[custKey]).trim(); var jc=r[jcnoKey];
@@ -1345,6 +1622,8 @@ function renderAll(){
   document.getElementById('last-update').textContent = D.lastUpdate;
   document.getElementById('total-records').textContent = fmt(D.totalJobs);
   document.getElementById('date-display').textContent = 'Last updated: '+D.lastUpdate+' | '+periodStr;
+  document.getElementById('header-title').textContent = COMPANY + ' Job Track Dashboard';
+  document.title = COMPANY + ' Job Track Dashboard';
   var ct = document.getElementById('chart-monthly-title');
   if(ct) ct.textContent = '📅 Monthly Job Count — '+periodShort;
 
@@ -1368,6 +1647,10 @@ function renderAll(){
   document.getElementById('ov-lam').textContent     = fmt(floorCnt('LAMINATION'));
   document.getElementById('ov-vdp').textContent     = fmt(floorCnt('VDP'));
   document.getElementById('ov-vr').textContent      = fmt(floorCnt('VR'));
+  // GP-only cards
+  document.getElementById('ov-fold').textContent    = fmt(floorCnt('FOLD'));
+  document.getElementById('ov-outsert').textContent = fmt(floorCnt('OUTSERT FOLDING'));
+  updateCardVisibility();
 
   // Monthly table
   var mt='', tj=0,tdd=0,tns=0,tc=0;
@@ -1635,7 +1918,23 @@ function renderMissingTables(){
 }
 
 function renderMissingCustTable(data){
-  var procs=['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+  var isGP = (COMPANY === 'GP');
+  var procs = isGP
+    ? ['FOLD','OUTSERT FOLDING','Job Not Started']
+    : ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+
+  // Update thead dynamically
+  var theadRow = document.querySelector('#missing-cust-table')
+    ? document.querySelector('#missing-cust-table').closest('table').querySelector('thead tr')
+    : null;
+  if(theadRow){
+    // GP: no separate Not Started fixed col (it's already in procs)
+    var fixedHdrs = '<th>#</th><th>Customer Name</th><th class="num">Pending Qty</th><th class="num">Tot. Cut SH</th><th class="num">Total Jobs</th>'
+      + (isGP ? '' : '<th class="num">Not Started</th>');
+    var procHdrs = procs.map(function(p){ return '<th class="num">'+p+'</th>'; }).join('');
+    theadRow.innerHTML = fixedHdrs + procHdrs;
+  }
+
   var html=''; var tp=0,tc=0,tj=0,tns=0;
   var procTotals={}; procs.forEach(function(p){procTotals[p]=0;});
   data.forEach(function(r,i){
@@ -1645,8 +1944,10 @@ function renderMissingCustTable(data){
       +'<td>'+r.name+'</td>'
       +'<td class="num">'+fmt(r.pqty)+'</td>'
       +'<td class="num">'+fmt(r.cutsh)+'</td>'
-      +'<td class="num" style="font-weight:700">'+r.jobs+'</td>'
-      +'<td class="num" style="color:#8a5200;font-weight:600">'+(r.nsJobs||0)+'</td>';
+      +'<td class="num" style="font-weight:700">'+r.jobs+'</td>';
+    if(!isGP){
+      html+='<td class="num" style="color:#8a5200;font-weight:600">'+(r.nsJobs||0)+'</td>';
+    }
     procs.forEach(function(p){
       var v=(r.proc&&r.proc[p])||0;
       html+='<td class="num">'+(v>0?v:0)+'</td>';
@@ -1656,7 +1957,8 @@ function renderMissingCustTable(data){
     tp+=r.pqty;tc+=r.cutsh;tj+=r.jobs;tns+=(r.nsJobs||0);
   });
   // Grand total row
-  html+='<tr class="total-row"><td></td><td>Grand Total</td><td class="num">'+fmt(tp)+'</td><td class="num">'+fmt(tc)+'</td><td class="num">'+tj+'</td><td class="num">'+tns+'</td>';
+  html+='<tr class="total-row"><td></td><td>Grand Total</td><td class="num">'+fmt(tp)+'</td><td class="num">'+fmt(tc)+'</td><td class="num">'+tj+'</td>';
+  if(!isGP){ html+='<td class="num">'+tns+'</td>'; }
   procs.forEach(function(p){ html+='<td class="num">'+(procTotals[p]||0)+'</td>'; });
   html+='</tr>';
   document.getElementById('missing-cust-table').innerHTML=html;
@@ -1752,8 +2054,12 @@ function downloadExcel(){
 
   var topSectionRows = Math.max(leftHeight, rightHeight) + 1; // +1 gap
 
-  var custProcs = ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
-  var custHdr = ['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
+  var custProcs = (COMPANY === 'GP')
+    ? ['FOLD','OUTSERT FOLDING','Job Not Started']
+    : ['PASTING','PH','SCREEN','FOIL','LAMINATION','VDP','VR','FRONT BAL'];
+  var custHdr = (COMPANY === 'GP')
+    ? ['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs'].concat(custProcs)
+    : ['#','Customer Name','Pending Qty','Tot. Cut SH','Total Jobs','Not Started'].concat(custProcs);
   // Customer section: title(1) + hdr(1) + data + grandtotal(1)
   var custSectionRows = 2 + D.missingCust.length + 1;
 
@@ -1769,7 +2075,7 @@ function downloadExcel(){
   function set(r,c,v,style){ if(r<grid.length&&c<TOTAL_COLS){grid[r][c]=v; sg[r][c]=style;} }
 
   // ---- ROW 0: Main Title ----
-  set(0,0,'AIA JOB TRACK DASHBOARD  |  '+xlDateRange+'  |  Total Jobs: '+D.totalJobs, cs(C.white,C.mainTitle,true,14,'center'));
+  set(0,0,COMPANY+' JOB TRACK DASHBOARD  |  '+xlDateRange+'  |  Total Jobs: '+D.totalJobs, cs(C.white,C.mainTitle,true,14,'center'));
 
   var B=2; // tables start row
 
@@ -1869,6 +2175,7 @@ function downloadExcel(){
 
   var r4=CUST_START+2, t4p=0,t4c=0,t4j=0,t4ns=0;
   var procGrand={}; custProcs.forEach(function(p){procGrand[p]=0;});
+  var procStartCol = (COMPANY === 'GP') ? 5 : 6; // GP: no nsJobs col
   D.missingCust.forEach(function(cust,i){
     var bg=i%2===0?lemonBg1:lemonBg2;
     set(r4,0,i+1,cs('FF555500',bg,false,9,'center'));
@@ -1876,10 +2183,12 @@ function downloadExcel(){
     set(r4,2,Math.round(cust.pqty),cs('FF555500',bg,false,9,'right',NF));
     set(r4,3,Math.round(cust.cutsh),cs('FF555500',bg,false,9,'right',NF));
     set(r4,4,cust.jobs,cs('FF0F3460',bg,true,9,'right',NF));
-    set(r4,5,cust.nsJobs||0,cs('FF8A5200',bg,false,9,'right',NF));
+    if(COMPANY !== 'GP'){
+      set(r4,5,cust.nsJobs||0,cs('FF8A5200',bg,false,9,'right',NF));
+    }
     custProcs.forEach(function(p,pi){
       var v=(cust.proc&&cust.proc[p])||0;
-      set(r4,6+pi,v,cs('FF555500',bg,false,9,'right',NF));
+      set(r4,procStartCol+pi,v,cs('FF555500',bg,false,9,'right',NF));
       procGrand[p]+=v;
     });
     t4p+=cust.pqty; t4c+=cust.cutsh; t4j+=cust.jobs; t4ns+=(cust.nsJobs||0); r4++;
@@ -1889,9 +2198,11 @@ function downloadExcel(){
   set(r4,2,Math.round(t4p),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
   set(r4,3,Math.round(t4c),csMed(lemonHdr,lemonGrand,true,9,'right',NF));
   set(r4,4,t4j,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
-  set(r4,5,t4ns,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  if(COMPANY !== 'GP'){
+    set(r4,5,t4ns,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+  }
   custProcs.forEach(function(p,pi){
-    set(r4,6+pi,procGrand[p]||0,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
+    set(r4,procStartCol+pi,procGrand[p]||0,csMed(lemonHdr,lemonGrand,true,9,'right',NF));
   });
 
   // ---- Build worksheet ----
@@ -2006,7 +2317,10 @@ function downloadExcel(){
   // SHEET 3 — AGING REPORT
   // ================================================================
   (function(){
-    var agHeaders=['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','PO Date','RM Status\n(Update 1.7.2024)','Print Date','Punch Date','Paste Date','Bucket'];
+    var isGP = (COMPANY === 'GP');
+    var agHeaders = isGP
+      ? ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Commit Date','Days Pending','Fold Date','Bucket']
+      : ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','PO Date','RM Status\n(Update 1.7.2024)','Print Date','Punch Date','Paste Date','Bucket'];
     var agBucketFG={'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
     var agBucketBG={'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
     var agTodayD=new Date(); agTodayD.setHours(0,0,0,0);
@@ -2018,7 +2332,7 @@ function downloadExcel(){
     }
     var agGrid=[], agStyle=[];
     function addAg(cols,sts){agGrid.push(cols);agStyle.push(sts);}
-    var agTitle='AGING REPORT — PENDING JOBS  |  '+xlDateRange+'  |  Total: '+D.agingRows.length+' jobs';
+    var agTitle=(isGP?'GP':'AIA')+' AGING REPORT — PENDING JOBS  |  '+xlDateRange+'  |  Total: '+D.agingRows.length+' jobs';
     addAg([agTitle].concat(new Array(agHeaders.length-1).fill('')),
           [cs(C.white,C.mainTitle,true,13,'center')].concat(new Array(agHeaders.length-1).fill(cs(C.white,C.mainTitle,false,13,'center'))));
     var bkSumData={'0-7':0,'8-15':0,'16-30':0,'30+':0};
@@ -2049,31 +2363,52 @@ function downloadExcel(){
         var bfg=agBucketFG[r.bucket]||'FF333333', bbg=agBucketBG[r.bucket]||'FFFFFFFF';
         var altBg=agRowNum%2===0?'FFF0F4FF':'FFFFFFFF';
         var jcno=String(r.jcno).trim();
-        var printD=D.schedPrinting[jcno]||'', punchD=D.schedPunching[jcno]||'', pasteD=D.schedPasting[jcno]||'';
         var pqtyVal=Math.round(r.pqty||0), cutshVal=Math.round(r.cutsh||0);
-        var poDateVal = String(r.poDate||'').trim();
-        var rmStatusVal = String(r.rmStatus||'').trim();
-        addAg(
-          [agRowNum, r.jcno, r.jobName||'', r.cust, r.status, pqtyVal, cutshVal,
-           r.revDate?fmtDate(r.revDate):'', r.days,
-           poDateVal||'—', rmStatusVal||'—',
-           printD||'—', punchD||'—', pasteD||'—', r.bucket+' days'],
-          [cs('FF888888',altBg,false,9,'center'),
-           cs('FF1A5FA8',altBg,true,9,'left'),
-           cs('FF1A1A2E',altBg,false,9,'left'),
-           cs('FF1A1A2E',altBg,false,9,'left'),
-           cs(bfg,bbg,true,9,'center'),
-           cs('FF0F3460',altBg,false,9,'right','#,##0'),
-           cs('FF0F3460',altBg,false,9,'right','#,##0'),
-           cs('FF444444',altBg,false,9,'center'),
-           cs(bfg,bbg,true,11,'center'),
-           cs('FF7D6608','FFFEF9E7',false,9,'center'),
-           cs('FF1A5F7A','FFEAF4FB',false,9,'left'),
-           agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
-           agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
-           agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
-           cs(bfg,bbg,true,9,'center')]
-        );
+
+        if(isGP){
+          var foldD=(D.schedFolding&&D.schedFolding[jcno.trim()])||'';
+          addAg(
+            [agRowNum, r.jcno, r.jobName||'', r.cust, r.status, pqtyVal, cutshVal,
+             r.revDate?fmtDate(r.revDate):'', r.days,
+             foldD||'—', r.bucket+' days'],
+            [cs('FF888888',altBg,false,9,'center'),
+             cs('FF1A5FA8',altBg,true,9,'left'),
+             cs('FF1A1A2E',altBg,false,9,'left'),
+             cs('FF1A1A2E',altBg,false,9,'left'),
+             cs(bfg,bbg,true,9,'center'),
+             cs('FF0F3460',altBg,false,9,'right','#,##0'),
+             cs('FF0F3460',altBg,false,9,'right','#,##0'),
+             cs('FF444444',altBg,false,9,'center'),
+             cs(bfg,bbg,true,11,'center'),
+             agIsOverdue(foldD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
+             cs(bfg,bbg,true,9,'center')]
+          );
+        } else {
+          var printD=D.schedPrinting[jcno]||'', punchD=D.schedPunching[jcno]||'', pasteD=D.schedPasting[jcno]||'';
+          var poDateVal = String(r.poDate||'').trim();
+          var rmStatusVal = String(r.rmStatus||'').trim();
+          addAg(
+            [agRowNum, r.jcno, r.jobName||'', r.cust, r.status, pqtyVal, cutshVal,
+             r.revDate?fmtDate(r.revDate):'', r.days,
+             poDateVal||'—', rmStatusVal||'—',
+             printD||'—', punchD||'—', pasteD||'—', r.bucket+' days'],
+            [cs('FF888888',altBg,false,9,'center'),
+             cs('FF1A5FA8',altBg,true,9,'left'),
+             cs('FF1A1A2E',altBg,false,9,'left'),
+             cs('FF1A1A2E',altBg,false,9,'left'),
+             cs(bfg,bbg,true,9,'center'),
+             cs('FF0F3460',altBg,false,9,'right','#,##0'),
+             cs('FF0F3460',altBg,false,9,'right','#,##0'),
+             cs('FF444444',altBg,false,9,'center'),
+             cs(bfg,bbg,true,11,'center'),
+             cs('FF7D6608','FFFEF9E7',false,9,'center'),
+             cs('FF1A5F7A','FFEAF4FB',false,9,'left'),
+             agIsOverdue(printD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
+             agIsOverdue(punchD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF5C3FA0','FFE8E0F5',false,9,'center'),
+             agIsOverdue(pasteD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FFB5541A','FFFDE9D9',false,9,'center'),
+             cs(bfg,bbg,true,9,'center')]
+          );
+        }
       });
     });
 
@@ -2084,18 +2419,26 @@ function downloadExcel(){
       }
     }
     wsAging['!merges']=agMerges;
-    // Column widths: #, JCNO, Job Name, Customer, Status, Pend Qty, Cut SH, Rev Commit, Days, PO Date, RM Status, Print, Punch, Paste, Bucket
-    wsAging['!cols']=[
-      {wch:4},{wch:13},{wch:28},{wch:22},{wch:14},
-      {wch:10},{wch:10},{wch:14},{wch:10},
-      {wch:12},{wch:22},
-      {wch:12},{wch:12},{wch:12},{wch:11}
-    ];
+    // Column widths — GP has fewer columns
+    if(isGP){
+      wsAging['!cols']=[
+        {wch:4},{wch:14},{wch:30},{wch:24},{wch:16},
+        {wch:11},{wch:11},{wch:14},{wch:10},
+        {wch:13},{wch:11}
+      ];
+      wsAging['!autofilter']={ref:'A3:K'+(agGrid.length)};
+    } else {
+      wsAging['!cols']=[
+        {wch:4},{wch:13},{wch:28},{wch:22},{wch:14},
+        {wch:10},{wch:10},{wch:14},{wch:10},
+        {wch:12},{wch:22},
+        {wch:12},{wch:12},{wch:12},{wch:11}
+      ];
+      wsAging['!autofilter']={ref:'A3:O'+(agGrid.length)};
+    }
     var agRH=[{hpt:32},{hpt:16},{hpt:26}]; for(var arh=0;arh<agGrid.length-3;arh++) agRH.push({hpt:15});
     wsAging['!rows']=agRH;
     wsAging['!freeze']={xSplit:0,ySplit:3};
-    wsAging['!autofilter']={ref:'A3:O'+(agGrid.length)};
-    // Print friendly: landscape, fit to 1 page wide, narrow margins, repeat header rows
     wsAging['!pageSetup']={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
     wsAging['!margins']={left:0.35,right:0.35,top:0.45,bottom:0.45,header:0.15,footer:0.15};
     XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
@@ -2103,7 +2446,7 @@ function downloadExcel(){
 
   var fromStr=fmtDDMMYYYY(xlFrom).replace(/\//g,'-');
   var toStr=fmtDDMMYYYY(xlTo).replace(/\//g,'-');
-  var fname='AIA_Report_'+fromStr+'_to_'+toStr+'.xlsx';
+  var fname=COMPANY+'_Report_'+fromStr+'_to_'+toStr+'.xlsx';
   XLSX.writeFile(wb,fname);
 }
 
@@ -2125,6 +2468,32 @@ function renderAgingTab(){
   document.getElementById('age-16-30').textContent=fmt(b2);
   document.getElementById('age-30plus').textContent=fmt(b3);
   document.getElementById('aging-info').textContent=D.agingRows.length+' pending jobs total';
+
+  // Update thead columns based on company
+  var aThead = document.getElementById('aging-thead');
+  if(aThead){
+    if(COMPANY === 'GP'){
+      aThead.innerHTML='<tr>'
+        +'<th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>'
+        +'<th class="num">Pending Qty</th><th class="num">Cut SH</th>'
+        +'<th class="num">Commit Date</th><th class="num">Days Pending</th>'
+        +'<th class="num" style="background:#d0e8f5;color:#16537e">📂 Fold Date</th>'
+        +'<th>Bucket</th>'
+        +'</tr>';
+    } else {
+      aThead.innerHTML='<tr>'
+        +'<th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>'
+        +'<th class="num">Pending Qty</th><th class="num">Cut SH</th>'
+        +'<th class="num">Rev. Commit Date</th><th class="num">Days Pending</th>'
+        +'<th class="num" style="background:#d0e8f5;color:#16537e">🖨️ Print Date</th>'
+        +'<th class="num" style="background:#e8e0f5;color:#5c3fa0">👊 Punch Date</th>'
+        +'<th class="num" style="background:#fde9d9;color:#b5541a">📋 Paste Date</th>'
+        +'<th class="num" style="background:#fef9e7;color:#7d6608">📄 PO Date</th>'
+        +'<th style="background:#eaf4fb;color:#1a5f7a">🔩 RM Status</th>'
+        +'<th>Bucket</th>'
+        +'</tr>';
+    }
+  }
 
   // Chart
   destroyChart('aging');
@@ -2204,47 +2573,70 @@ function renderAgingTable(rows){
       var fg=bucketColors[r.bucket]||'#333';
       var dStr=r.revDate?fmtDate(r.revDate):'—';
       var jcno=String(r.jcno).trim();
-      var printDate = D.schedPrinting[jcno] || null;
-      var punchDate = D.schedPunching[jcno] || null;
-      var pasteDate = D.schedPasting[jcno]  || null;
       custPqty  += (r.pqty  || 0);
       custCutsh += (r.cutsh || 0);
-      html+='<tr style="background:'+bg+'">'
-        +'<td>'+globalRowNum+'</td>'
-        +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
-        +'<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
-        +'<td>'+r.cust+'</td>'
-        +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
-        +'<td class="num">'+fmt(r.pqty)+'</td>'
-        +'<td class="num">'+fmt(r.cutsh)+'</td>'
-        +'<td class="num">'+dStr+'</td>'
-        +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
-        +schedCell(printDate,'#d0e8f5')
-        +schedCell(punchDate,'#e8e0f5')
-        +schedCell(pasteDate,'#fde9d9')
-        +'<td class="num" style="background:#fef9e7;color:#7d6608;font-size:11px">'+(r.poDate||'—')+'</td>'
-        +'<td style="background:#eaf4fb;color:#1a5f7a;font-size:11px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.rmStatus||'')+'">'+(r.rmStatus||'—')+'</td>'
-        +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
-        +'</tr>';
+
+      if(COMPANY === 'GP'){
+        // GP row: Fold Date only
+        var foldDate = (D.schedFolding && D.schedFolding[jcno.trim()]) || null;
+        html+='<tr style="background:'+bg+'">'
+          +'<td>'+globalRowNum+'</td>'
+          +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
+          +'<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+          +'<td>'+r.cust+'</td>'
+          +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
+          +'<td class="num">'+fmt(r.pqty)+'</td>'
+          +'<td class="num">'+fmt(r.cutsh)+'</td>'
+          +'<td class="num">'+dStr+'</td>'
+          +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
+          +schedCell(foldDate,'#d0e8f5')
+          +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
+          +'</tr>';
+      } else {
+        // AIA row: Print / Punch / Paste dates
+        var printDate = D.schedPrinting[jcno] || null;
+        var punchDate = D.schedPunching[jcno] || null;
+        var pasteDate = D.schedPasting[jcno]  || null;
+        html+='<tr style="background:'+bg+'">'
+          +'<td>'+globalRowNum+'</td>'
+          +'<td style="font-weight:700;color:#1a5fa8">'+r.jcno+'</td>'
+          +'<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.jobName||'')+'">'+( r.jobName || '<span style="color:var(--text2);font-style:italic">—</span>' )+'</td>'
+          +'<td>'+r.cust+'</td>'
+          +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.status+'</span></td>'
+          +'<td class="num">'+fmt(r.pqty)+'</td>'
+          +'<td class="num">'+fmt(r.cutsh)+'</td>'
+          +'<td class="num">'+dStr+'</td>'
+          +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
+          +schedCell(printDate,'#d0e8f5')
+          +schedCell(punchDate,'#e8e0f5')
+          +schedCell(pasteDate,'#fde9d9')
+          +'<td class="num" style="background:#fef9e7;color:#7d6608;font-size:11px">'+(r.poDate||'—')+'</td>'
+          +'<td style="background:#eaf4fb;color:#1a5f7a;font-size:11px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.rmStatus||'')+'">'+(r.rmStatus||'—')+'</td>'
+          +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
+          +'</tr>';
+      }
     });
 
     // Subtotal row for this customer group
+    var subColspan = (COMPANY === 'GP') ? 2 : 8;
+    var totalColspan = (COMPANY === 'GP') ? 11 : 15;
     html+='<tr class="total-row" style="background:#d6e4f0">'
       +'<td colspan="5" style="font-weight:700;font-size:11px;color:#0f3460;padding:5px 11px">'
         +'&#8627; '+cust+' — '+group.length+' job'+(group.length>1?'s':'')
       +'</td>'
       +'<td class="num" style="font-weight:700;color:#0f3460">'+fmt(custPqty)+'</td>'
       +'<td class="num" style="font-weight:700;color:#0f3460">'+fmt(custCutsh)+'</td>'
-      +'<td colspan="8"></td>'
+      +'<td colspan="'+subColspan+'"></td>'
       +'</tr>';
 
     // Spacer row between customer groups (except after last)
     if(ci < custOrder.length - 1){
-      html+='<tr style="height:8px;background:var(--bg)"><td colspan="15" style="padding:0;border:none"></td></tr>';
+      html+='<tr style="height:8px;background:var(--bg)"><td colspan="'+totalColspan+'" style="padding:0;border:none"></td></tr>';
     }
   });
 
-  document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
+  var emptyColspan = (COMPANY === 'GP') ? 11 : 15;
+  document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="'+emptyColspan+'" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
 }
 
 // ===================== DRILL-DOWN MODAL =====================
@@ -3646,9 +4038,14 @@ function renderMissReport(){
     });
   }
 
-  addRows(D.schedPrinting,'Printing');
-  addRows(D.schedPunching,'Punching');
-  addRows(D.schedPasting,'Pasting');
+  // Build rows from schedule maps based on company
+  if(COMPANY === 'GP'){
+    addRows(D.schedFolding || {}, 'Folding');
+  } else {
+    addRows(D.schedPrinting,'Printing');
+    addRows(D.schedPunching,'Punching');
+    addRows(D.schedPasting,'Pasting');
+  }
 
   // Sort by customer then JCNO
   rows.sort(function(a,b){ return a.cust.localeCompare(b.cust)||String(a.jcno).localeCompare(String(b.jcno)); });
@@ -3677,8 +4074,8 @@ function renderMissTable(){
     document.getElementById('mr-total').textContent='0';
     return;
   }
-  var procColors={Printing:'#d0e8f5',Punching:'#e8e0f5',Pasting:'#fde9d9'};
-  var procFG={Printing:'#16537e',Punching:'#5c3fa0',Pasting:'#b5541a'};
+  var procColors={Printing:'#d0e8f5',Punching:'#e8e0f5',Pasting:'#fde9d9',Folding:'#d0f5e8'};
+  var procFG={Printing:'#16537e',Punching:'#5c3fa0',Pasting:'#b5541a',Folding:'#0d7377'};
   var html='';
   _missRows.forEach(function(r,i){
     var rowCls = r.missed ? 'mr-row-missed' : '';
@@ -4106,7 +4503,7 @@ function downloadOverdueExcel(){
 
 // Init
 window.onload=function(){
-  document.getElementById('date-display').textContent='Upload AIA Track Record to load dashboard';
+  document.getElementById('date-display').textContent='Upload '+COMPANY+' Track Record to load dashboard';
   // Set today's date in missed report date picker
   var td = new Date();
   var mm = ('0'+(td.getMonth()+1)).slice(-2);

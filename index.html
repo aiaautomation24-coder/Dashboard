@@ -2319,7 +2319,7 @@ function downloadExcel(){
   (function(){
     var isGP = (COMPANY === 'GP');
     var agHeaders = isGP
-      ? ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Commit Date','Days Pending','Fold Date','Bucket']
+      ? ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Commit Date','Days Pending','PO Date','RM Status','Fold Date','Bucket']
       : ['#','JCNO','Job Name','Customer','Status','Pending Qty','Cut SH','Rev. Commit Date','Days Pending','PO Date','RM Status\n(Update 1.7.2024)','Print Date','Punch Date','Paste Date','Bucket'];
     var agBucketFG={'0-7':'FF2A6E2A','8-15':'FF8A5200','16-30':'FFB5541A','30+':'FFA02020'};
     var agBucketBG={'0-7':'FFE8F5E8','8-15':'FFFFF8E1','16-30':'FFFFF3E0','30+':'FFFAEAEA'};
@@ -2367,9 +2367,12 @@ function downloadExcel(){
 
         if(isGP){
           var foldD=(D.schedFolding&&D.schedFolding[jcno.trim()])||'';
+          var poDateVal = String(r.poDate||'').trim();
+          var rmStatusVal = String(r.rmStatus||'').trim();
           addAg(
             [agRowNum, r.jcno, r.jobName||'', r.cust, r.status, pqtyVal, cutshVal,
              r.revDate?fmtDate(r.revDate):'', r.days,
+             poDateVal||'—', rmStatusVal||'—',
              foldD||'—', r.bucket+' days'],
             [cs('FF888888',altBg,false,9,'center'),
              cs('FF1A5FA8',altBg,true,9,'left'),
@@ -2380,6 +2383,8 @@ function downloadExcel(){
              cs('FF0F3460',altBg,false,9,'right','#,##0'),
              cs('FF444444',altBg,false,9,'center'),
              cs(bfg,bbg,true,11,'center'),
+             cs('FF7D6608','FFFEF9E7',false,9,'center'),
+             cs('FF1A5F7A','FFEAF4FB',false,9,'left'),
              agIsOverdue(foldD)?cs('FFA02020','FFFAEAEA',true,9,'center'):cs('FF16537E','FFD0E8F5',false,9,'center'),
              cs(bfg,bbg,true,9,'center')]
           );
@@ -2424,9 +2429,10 @@ function downloadExcel(){
       wsAging['!cols']=[
         {wch:4},{wch:14},{wch:30},{wch:24},{wch:16},
         {wch:11},{wch:11},{wch:14},{wch:10},
+        {wch:12},{wch:22},
         {wch:13},{wch:11}
       ];
-      wsAging['!autofilter']={ref:'A3:K'+(agGrid.length)};
+      wsAging['!autofilter']={ref:'A3:M'+(agGrid.length)};
     } else {
       wsAging['!cols']=[
         {wch:4},{wch:13},{wch:28},{wch:22},{wch:14},
@@ -2477,6 +2483,8 @@ function renderAgingTab(){
         +'<th>#</th><th>JCNO</th><th>Job Name</th><th>Customer</th><th>Status</th>'
         +'<th class="num">Pending Qty</th><th class="num">Cut SH</th>'
         +'<th class="num">Commit Date</th><th class="num">Days Pending</th>'
+        +'<th class="num" style="background:#fef9e7;color:#7d6608">📄 PO Date</th>'
+        +'<th style="background:#eaf4fb;color:#1a5f7a">🔩 RM Status</th>'
         +'<th class="num" style="background:#d0e8f5;color:#16537e">📂 Fold Date</th>'
         +'<th>Bucket</th>'
         +'</tr>';
@@ -2589,6 +2597,8 @@ function renderAgingTable(rows){
           +'<td class="num">'+fmt(r.cutsh)+'</td>'
           +'<td class="num">'+dStr+'</td>'
           +'<td class="num" style="font-weight:700;color:'+fg+'">'+r.days+'</td>'
+          +'<td class="num" style="background:#fef9e7;color:#7d6608;font-size:11px">'+(r.poDate||'—')+'</td>'
+          +'<td style="background:#eaf4fb;color:#1a5f7a;font-size:11px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(r.rmStatus||'')+'">'+(r.rmStatus||'—')+'</td>'
           +schedCell(foldDate,'#d0e8f5')
           +'<td><span class="badge" style="background:'+bg+';color:'+fg+'">'+r.bucket+' days</span></td>'
           +'</tr>';
@@ -2618,8 +2628,8 @@ function renderAgingTable(rows){
     });
 
     // Subtotal row for this customer group
-    var subColspan = (COMPANY === 'GP') ? 2 : 8;
-    var totalColspan = (COMPANY === 'GP') ? 11 : 15;
+    var subColspan = (COMPANY === 'GP') ? 4 : 8;
+    var totalColspan = (COMPANY === 'GP') ? 13 : 15;
     html+='<tr class="total-row" style="background:#d6e4f0">'
       +'<td colspan="5" style="font-weight:700;font-size:11px;color:#0f3460;padding:5px 11px">'
         +'&#8627; '+cust+' — '+group.length+' job'+(group.length>1?'s':'')
@@ -2635,7 +2645,7 @@ function renderAgingTable(rows){
     }
   });
 
-  var emptyColspan = (COMPANY === 'GP') ? 11 : 15;
+  var emptyColspan = (COMPANY === 'GP') ? 13 : 15;
   document.getElementById('aging-table').innerHTML=html||'<tr><td colspan="'+emptyColspan+'" style="text-align:center;padding:20px;color:var(--text2)">No pending jobs in selected range</td></tr>';
 }
 

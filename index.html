@@ -331,6 +331,7 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
       <button class="qbtn" onclick="setQuick('thisyear',this)">This Year</button>
       <button class="qbtn active" id="qbtn-jan2026" onclick="setQuick('jan2026',this)">Full Range</button>
       <button class="qbtn" onclick="setQuick('15daysprior',this)">15 Days Prior</button>
+      <button class="qbtn" onclick="setQuick('12daysprior',this)">12 Days Prior</button>
       <button class="qbtn" onclick="setQuick('7daysprior',this)">7 Days Prior</button>
     </div>
     <button class="dfbtn dfbtn-apply" onclick="applyDateFilter()">Apply Filter</button>
@@ -922,6 +923,10 @@ function setQuick(type, btn){
     from = jan2026;
     var prior15 = new Date(now); prior15.setDate(prior15.getDate() - 15);
     to = new Date(prior15.getFullYear(), prior15.getMonth(), prior15.getDate(), 23,59,59);
+  } else if(type==='12daysprior'){
+    from = jan2026;
+    var prior12 = new Date(now); prior12.setDate(prior12.getDate() - 12);
+    to = new Date(prior12.getFullYear(), prior12.getMonth(), prior12.getDate(), 23,59,59);
   } else if(type==='7daysprior'){
     from = jan2026;
     var prior7 = new Date(now); prior7.setDate(prior7.getDate() - 7);

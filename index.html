@@ -1106,7 +1106,13 @@ function parseScheduleSheet(rows){
   var currentDate = null;
 
   var MONTHS = {JANUARY:0,FEBRUARY:1,MARCH:2,APRIL:3,MAY:4,JUNE:5,
-                JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11};
+                JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11,
+                JAN:0,FEB:1,MAR:2,APR:3,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+
+  // Column index of the "MR Date" header, once found in a Punching/Pasting-style header row.
+  // Used so each job row's OWN MR Date column is read directly, instead of relying only
+  // on the day-group header text above it.
+  var mrDateColIdx = -1;
 
   // Excel serial number → correct local Date (NO timezone shift)
   // cellDates:false वापरल्यामुळे dates येतात as raw numbers (e.g. 46115)
@@ -1175,9 +1181,13 @@ function parseScheduleSheet(rows){
     }
 
     // JCNO col1 → Punching/Pasting job row
-    if(isJCNO(col1) && currentDate){
+    if(isJCNO(col1)){
       var jcno = String(col1).trim();
-      if(!/JG/i.test(jcno) && !map[jcno]) map[jcno] = fmtD(currentDate); // skip GP (JG) doc IDs — this schedule is AIA only
+      // Prefer this row's own "MR Date" column (if that header was found above); else
+      // fall back to the last day-group header date, exactly as before.
+      var rowDate = (mrDateColIdx >= 0 && row.length > mrDateColIdx) ? tryDate(row[mrDateColIdx]) : null;
+      var useDate = rowDate || currentDate;
+      if(useDate && !/JG/i.test(jcno) && !map[jcno]) map[jcno] = fmtD(useDate); // skip GP (JG) doc IDs — this schedule is AIA only
       continue;
     }
 
@@ -1186,6 +1196,10 @@ function parseScheduleSheet(rows){
     // Job rows contain Qty/CutSheets numbers that can accidentally match date serial range.
     if(!isJCNO(col0) && !isJCNO(col1)){
       for(var c = 0; c < row.length; c++){
+        // Detect "MR Date" header column so subsequent job rows can be read directly.
+        if(mrDateColIdx < 0 && typeof row[c] === 'string' && row[c].trim().toUpperCase() === 'MR DATE'){
+          mrDateColIdx = c;
+        }
         var d = tryDate(row[c]);
         if(d){ currentDate = d; break; }
       }

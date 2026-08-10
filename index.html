@@ -265,19 +265,19 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
       <label class="hbtn" style="background:#16537e;color:#fff;cursor:pointer" for="printFile" title="Upload Printing Schedule">
         🖨️ Printing
       </label>
-      <input type="file" id="printFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'printing')">
+      <input type="file" id="printFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'printing');loadCJFile(this,'printing')">
       <span id="print-badge" class="file-badge fb-empty">Not loaded</span>
 
       <label class="hbtn" style="background:#5c3fa0;color:#fff;cursor:pointer" for="punchFile" title="Upload Punching Schedule">
         👊 Punching
       </label>
-      <input type="file" id="punchFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'punching')">
+      <input type="file" id="punchFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'punching');loadCJFile(this,'punching')">
       <span id="punch-badge" class="file-badge fb-empty">Not loaded</span>
 
       <label class="hbtn" style="background:#b5541a;color:#fff;cursor:pointer" for="pasteFile" title="Upload Pasting Schedule">
         📋 Pasting
       </label>
-      <input type="file" id="pasteFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'pasting')">
+      <input type="file" id="pasteFile" accept=".xlsx,.xlsm,.xls" style="display:none" onchange="loadScheduleFile(this,'pasting');loadCJFile(this,'pasting')">
       <span id="paste-badge" class="file-badge fb-empty">Not loaded</span>
     </div>
 
@@ -309,6 +309,7 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
   <div class="tab" onclick="showTab('missreport',this)">📋 Missed Report</div>
   <div class="tab" onclick="showTab('overdue',this)">🔴 Overdue Jobs</div>
   <div class="tab" onclick="showTab('impact',this)">📊 Impact Analysis</div>
+  <div class="tab" onclick="showTab('compulsory',this)">🎯 Compulsory Jobs</div>
 </div>
 
 <div class="main">
@@ -775,6 +776,27 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
   </div>
 </div>
 
+<!-- ===================== COMPULSORY JOBS (50% DAY-MACHINE CUTOFF) TAB ===================== -->
+<div id="tab-compulsory" class="panel">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:14px;font-size:11.5px;color:var(--text2)">
+    🎯 <b style="color:var(--text)">Compulsory Job Check</b> — Printing (4COL/6COL), Punching (B1/B2) ani Pasting (Ambition/Expert) chya <b>same upload buttons</b> (वरती header मध्ये) वापरून ही list auto-banते. Logic: pratyek din + machine sathi total (Printing/Punching = Tot. Cut Sheet, Pasting = Pending Qty) कादला जातो; tya total chya <b>50% peksha jasta</b> asnare individual jobs ithe highest-to-lowest क्रमाने दिसतात.
+  </div>
+
+  <div class="cards" style="margin-bottom:14px">
+    <div class="card c-blue"><div class="cl">Printing</div><div class="cv" id="cj-print-total">—</div><div class="cs">Compulsory jobs</div></div>
+    <div class="card c-purple"><div class="cl">Punching</div><div class="cv" id="cj-punch-total">—</div><div class="cs">Compulsory jobs</div></div>
+    <div class="card" style="background:var(--orange-bg)"><div class="cl">Pasting</div><div class="cv" id="cj-paste-total" style="color:var(--orange)">—</div><div class="cs">Compulsory jobs</div></div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px">
+    <button onclick="downloadCJExcel()" style="background:#0f3460;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Download Compulsory Jobs Excel</button>
+  </div>
+
+  <div id="cj-printing-wrap"></div>
+  <div id="cj-punching-wrap"></div>
+  <div id="cj-pasting-wrap"></div>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -928,7 +950,9 @@ var D = {
   _filterFrom: null,
   _filterTo: null,
   // Missed report saved entries
-  missedEntries: []  // [{date, jcno, jobName, cust, proc, schedDate, reason, remark, savedAt}]
+  missedEntries: [],  // [{date, jcno, jobName, cust, proc, schedDate, reason, remark, savedAt}]
+  // Compulsory Job Check (50% day-machine cutoff) — independent of track record upload
+  cj: { printing: [], punching: [], pasting: [] }
 };
 
 function fmt(n){ if(!n && n!==0) return '—'; return Math.round(n).toLocaleString('en-IN'); }
@@ -1035,6 +1059,7 @@ function showTab(id, el){
   if(id==='missreport') renderMissReport();
   if(id==='overdue' && D.loaded) renderOverdueTab();
   if(id==='impact' && D.loaded) renderImpactAnalysis();
+  if(id==='compulsory') renderCompulsory();
 }
 
 // ---- LOADING SPINNER ----
@@ -4892,6 +4917,362 @@ function downloadOverdueExcel(){
 
   XLSX.utils.book_append_sheet(wb,ws,'Overdue Jobs');
   XLSX.writeFile(wb,'AIA_Overdue_Jobs_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx');
+}
+
+// ===================== COMPULSORY JOB CHECK (50% Day-Machine Cutoff) =====================
+// Independent module — reads the SAME Printing/Punching/Pasting upload buttons used by
+// Impact Analysis, but re-reads the file with cellDates:true for its own full-column parse.
+// Does not touch D.schedPrinting/schedPunching/schedPasting or any existing render path.
+
+function cjDateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function cjIsJCNO(v){ if(v===null||v===undefined||v==='') return false; return /^[A-Za-z0-9]{2,}\/[0-9]+$/.test(String(v).trim()); }
+function cjWeekdayDate(str){
+  if(typeof str!=='string') return null;
+  // NOTE: search anywhere in the string (not anchored at start) so an emoji/icon prefix
+  // before the weekday name (e.g. "📅 MONDAY — 10 AUGUST 2026") still matches — an anchored
+  // ^\s* match was silently failing on such rows and dropping that entire day.
+  if(!/(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)/i.test(str)) return null;
+  var m = str.match(/(\d{1,2})\s+([A-Za-z]+)\.?,?\s+(\d{4})/i);
+  if(!m) return null;
+  var MONTHS={JANUARY:0,FEBRUARY:1,MARCH:2,APRIL:3,MAY:4,JUNE:5,JULY:6,AUGUST:7,SEPTEMBER:8,OCTOBER:9,NOVEMBER:10,DECEMBER:11};
+  var mo=MONTHS[m[2].toUpperCase()];
+  if(mo===undefined) return null;
+  var d=new Date(+m[3],mo,+m[1]);
+  return isNaN(d.getTime())?null:d;
+}
+// IST-safe normalizer for a date coming from an Excel cell — always resolves to the calendar
+// date in IST (UTC+5:30), independent of the browser's own local timezone, so the date shown
+// always matches the date that was actually in the source file. Handles a real Date object
+// (xlsx cellDates:true), a raw Excel serial number, or a DD-MM-YYYY / DD/MM/YYYY string.
+var IST_OFFSET_MS = 5.5*60*60*1000;
+var DAY_MS = 86400000;
+function cjToISTCalendarDate(instantMs){
+  // Shift the instant into IST, then snap to the nearest whole day. The snap absorbs tiny
+  // floating-point drift (a few ms either side of midnight) that SheetJS's Excel-serial→Date
+  // conversion can introduce — without it, that drift could tip the calendar date read-out
+  // to the day before the actual date in the source file.
+  var shifted = instantMs + IST_OFFSET_MS;
+  var dayIndex = Math.round(shifted / DAY_MS);
+  var d = new Date(dayIndex * DAY_MS);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+function cjNormalizeDate(e){
+  if(e instanceof Date && !isNaN(e.getTime())){
+    return cjToISTCalendarDate(e.getTime());
+  }
+  if(typeof e === 'number' && isFinite(e)){
+    var ms = Math.round((e-25569)*86400000);
+    if(isNaN(ms)) return null;
+    return cjToISTCalendarDate(ms);
+  }
+  if(typeof e === 'string'){
+    var s = e.trim();
+    var mm = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if(mm){
+      var yy=+mm[3]; if(yy<100) yy+=2000;
+      var d=new Date(yy, +mm[2]-1, +mm[1]);
+      return isNaN(d.getTime())?null:d;
+    }
+    var wd = cjWeekdayDate(s);
+    if(wd) return wd;
+  }
+  return null;
+}
+
+// ---- Printing: '4 col' / '6 col' sheets. Date-marker row (col A blank, col E = Date) sets
+// the current date for the JCNO data rows that follow, until the next marker row. ----
+function parseCJPrinting(wb){
+  var out=[];
+  var sheetDefs=[{re:/4\s*col/i,label:'4 COL'},{re:/6\s*col/i,label:'6 COL'}];
+  sheetDefs.forEach(function(sd){
+    var sn = wb.SheetNames.find(function(n){return sd.re.test(n);});
+    if(!sn) return;
+    var raw = XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true});
+    var curDate=null;
+    for(var r=0;r<raw.length;r++){
+      var row=raw[r]; if(!row) continue;
+      var a=row[0], e=row[4];
+      if(a===null||a===undefined||a===''){
+        var dNorm = cjNormalizeDate(e);
+        if(dNorm){ curDate=dNorm; continue; }
+      }
+      if(cjIsJCNO(a) && curDate){
+        out.push({
+          process:'Printing', machine:sd.label, shift:null,
+          dateKey:cjDateKey(curDate), dateLabel:fmtDDMMYYYY(curDate),
+          jcno:String(a).trim(), customer:row[5]||'—', jobname:row[4]||'—',
+          qty:Number(row[6])||0, cutsheet:Number(row[9])||0,
+          dimension:row[32]||'—', dieno:'—', itemtype:row[30]||'—', status:row[14]||'—',
+          basisValue:Number(row[9])||0
+        });
+      }
+    }
+  });
+  return out;
+}
+
+// ---- Punching: 'Punching Plan' sheet — Day header ("MONDAY — 10 AUGUST 2026") then
+// Machine header ("🔵 MACHINE B1"/"MACHINE B2") then data rows (JCNO in col B). ----
+function parseCJPunching(wb){
+  var out=[];
+  var sn = wb.SheetNames.find(function(n){return /punch/i.test(n);});
+  if(!sn) return out;
+  var raw = XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true});
+  var curDate=null, curMachine=null;
+  for(var r=0;r<raw.length;r++){
+    var row=raw[r]; if(!row) continue;
+    var a=row[0];
+    if(typeof a==='string'){
+      var wd=cjWeekdayDate(a);
+      if(wd){ curDate=wd; curMachine=null; continue; }
+      var mm=a.match(/MACHINE\s+([A-Z0-9]+)/i);
+      if(mm){ curMachine=mm[1].toUpperCase(); continue; }
+      if(a.trim()==='Sr') continue;
+    }
+    var b=row[1];
+    if(cjIsJCNO(b) && curDate && curMachine){
+      out.push({
+        process:'Punching', machine:curMachine, shift:row[15]||'—',
+        dateKey:cjDateKey(curDate), dateLabel:fmtDDMMYYYY(curDate),
+        jcno:String(b).trim(), customer:row[2]||'—', jobname:row[3]||'—',
+        qty:Number(row[4])||0, cutsheet:Number(row[5])||0,
+        dimension:row[6]||'—', dieno:row[7]||'—', itemtype:row[8]||'—', status:row[9]||'—',
+        basisValue:Number(row[5])||0
+      });
+    }
+  }
+  return out;
+}
+
+// ---- Pasting: 'Pasting Schedule' sheet — Day header then Machine header
+// ("🔵 AMBITION"/"🔵 EXPERT") then data rows (JCNO in col B). 50% cutoff basis is
+// Pending Qty (col E) per requirement, NOT Tot. Cut Sh — displayed column still shows
+// actual Tot. Cut Sh (col N) for reference. ----
+function parseCJPasting(wb){
+  var out=[];
+  var sn = wb.SheetNames.find(function(n){return /past/i.test(n);});
+  if(!sn) return out;
+  var raw = XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true});
+  var curDate=null, curMachine=null;
+  for(var r=0;r<raw.length;r++){
+    var row=raw[r]; if(!row) continue;
+    var a=row[0];
+    if(typeof a==='string'){
+      var wd=cjWeekdayDate(a);
+      if(wd){ curDate=wd; curMachine=null; continue; }
+      if(/AMBITION/i.test(a)){ curMachine='AMBITION'; continue; }
+      if(/EXPERT/i.test(a)){ curMachine='EXPERT'; continue; }
+      if(a.trim()==='Sr') continue;
+    }
+    var b=row[1];
+    if(cjIsJCNO(b) && curDate && curMachine){
+      out.push({
+        process:'Pasting', machine:curMachine, shift:row[19]||'—',
+        dateKey:cjDateKey(curDate), dateLabel:fmtDDMMYYYY(curDate),
+        jcno:String(b).trim(), customer:row[2]||'—', jobname:row[3]||'—',
+        qty:Number(row[4])||0, cutsheet:Number(row[13])||0,
+        dimension:row[6]||'—', dieno:'—', itemtype:row[5]||'—', status:row[7]||'—',
+        basisValue:Number(row[4])||0
+      });
+    }
+  }
+  return out;
+}
+
+// Group by machine+day+SHIFT and take highest→lowest jobs until the running total crosses 50%
+// of that group's total. IMPORTANT: for Punching/Pasting, the 50% cutoff must be computed
+// per SHIFT, not against the combined day total — each shift's workload is planned/checked
+// independently (e.g. Day total 70000 with Shift 1 = 40000 and Shift 2 = 30000 needs its own
+// 50% cutoff per shift, not one 50% of 70000). Printing has no shift (r.shift is always null),
+// so its grouping collapses to machine+day exactly as before — unaffected.
+function computeCJCompulsory(rows){
+  // Day-level totals (across all shifts combined) — for the day banner display only, never
+  // used for the 50%-cutoff filtering itself.
+  var dayTotals={};
+  rows.forEach(function(r){
+    var dk=r.machine+'|'+r.dateKey;
+    dayTotals[dk]=(dayTotals[dk]||0)+r.basisValue;
+  });
+
+  var groups={};
+  rows.forEach(function(r){
+    var k=r.machine+'|'+r.dateKey+'|'+(r.shift||'');
+    (groups[k]=groups[k]||[]).push(r);
+  });
+  var result=[];
+  Object.keys(groups).forEach(function(k){
+    var grp=groups[k].slice().sort(function(a,b){ return b.basisValue-a.basisValue; });
+    var total=0; grp.forEach(function(r){ total+=r.basisValue; });
+    var threshold=total*0.5;
+    var cum=0;
+    for(var i=0;i<grp.length;i++){
+      var r=grp[i];
+      cum+=r.basisValue;
+      r.shiftTotal=total; r.shiftThreshold=threshold;
+      r.dayTotal=dayTotals[r.machine+'|'+r.dateKey];
+      result.push(r);
+      if(cum>threshold) break; // stop as soon as the highest-to-lowest running total crosses 50%
+    }
+  });
+  result.sort(function(x,y){
+    if(x.machine!==y.machine) return x.machine<y.machine?-1:1;
+    if(x.dateKey!==y.dateKey) return x.dateKey<y.dateKey?-1:1;
+    if((x.shift||'')!==(y.shift||'')) return (x.shift||'')<(y.shift||'')?-1:1;
+    return y.basisValue-x.basisValue;
+  });
+  return result;
+}
+
+function loadCJFile(input, type){
+  var file = input.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true,bookVBA:false});
+      var rawRows;
+      if(type==='printing') rawRows = parseCJPrinting(wb);
+      else if(type==='punching') rawRows = parseCJPunching(wb);
+      else rawRows = parseCJPasting(wb);
+      D.cj[type] = computeCJCompulsory(rawRows);
+      renderCompulsory();
+    }catch(err){
+      console.error('Compulsory Jobs parse error ('+type+'):', err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function cjSectionHtml(procLabel, rows, hasShift){
+  if(!rows || !rows.length){
+    return '<div class="sec" style="margin-bottom:14px"><div class="sec-head"><h2>'+procLabel+'</h2></div>'
+         + '<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">Schedule file upload kara ('+procLabel+')</div></div>';
+  }
+  var colspan = hasShift ? 13 : 12;
+  var totalColLabel = hasShift ? 'Shift Total' : 'Day Total';
+  var html = '<div class="sec" style="margin-bottom:14px"><div class="sec-head"><h2>'+procLabel+'</h2><span>'+rows.length+' compulsory jobs</span></div><div class="table-wrap"><table>';
+  html += '<thead><tr><th>Day</th>'+(hasShift?'<th>Shift</th>':'')+'<th>#</th><th>JCNO</th><th>Customer</th><th>Job Name</th><th class="num">Qty</th><th class="num">Total Cut Sheet</th><th>Dimension</th><th>Die No</th><th>Item Type</th><th>Status</th><th class="num">'+totalColLabel+'</th><th class="num">50% Cutoff</th></tr></thead><tbody>';
+  var lastDayKey=null, lastShiftKey=null, n=0;
+  rows.forEach(function(r){
+    var dayKey = r.machine+'|'+r.dateKey;
+    if(hasShift && dayKey!==lastDayKey){
+      lastDayKey=dayKey;
+      html += '<tr class="sub-row"><td colspan="'+colspan+'" style="background:#dbe6f0;font-weight:700;color:#0f3460">'
+            + '🏭 '+r.machine+' &nbsp;|&nbsp; 📅 '+r.dateLabel+' &nbsp;|&nbsp; Day Total: '+fmt(r.dayTotal)+'</td></tr>';
+    }
+    var shiftKey = dayKey+'|'+(r.shift||'');
+    if(shiftKey!==lastShiftKey){
+      lastShiftKey=shiftKey; n=0;
+      html += '<tr class="sub-row"><td colspan="'+colspan+'" style="background:#eef2f7;font-weight:700;color:#0f3460">'
+            + (hasShift?'&nbsp;&nbsp;⏱ ':'🏭 '+r.machine+' &nbsp;|&nbsp; 📅 ')+(hasShift?r.shift:r.dateLabel)+'</td></tr>';
+    }
+    n++;
+    html += '<tr><td>'+r.dateLabel+'</td>'+(hasShift?('<td>'+r.shift+'</td>'):'')+'<td>'+n+'</td>'
+          + '<td style="color:var(--blue);font-weight:700">'+r.jcno+'</td><td>'+r.customer+'</td><td>'+r.jobname+'</td>'
+          + '<td class="num">'+fmt(r.qty)+'</td><td class="num" style="font-weight:700">'+fmt(r.cutsheet)+'</td>'
+          + '<td>'+r.dimension+'</td><td>'+r.dieno+'</td><td>'+r.itemtype+'</td><td>'+r.status+'</td>'
+          + '<td class="num">'+fmt(r.shiftTotal)+'</td><td class="num">'+fmt(r.shiftThreshold)+'</td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+function renderCompulsory(){
+  document.getElementById('cj-print-total').textContent = D.cj.printing.length;
+  document.getElementById('cj-punch-total').textContent = D.cj.punching.length;
+  document.getElementById('cj-paste-total').textContent = D.cj.pasting.length;
+  document.getElementById('cj-printing-wrap').innerHTML = cjSectionHtml('🖨️ Printing (4COL / 6COL)', D.cj.printing, false);
+  document.getElementById('cj-punching-wrap').innerHTML = cjSectionHtml('👊 Punching (B1 / B2)', D.cj.punching, true);
+  document.getElementById('cj-pasting-wrap').innerHTML = cjSectionHtml('📋 Pasting (Ambition / Expert)', D.cj.pasting, true);
+}
+
+function cjBuildSheet(wb, sheetName, rows, hasShift, headerColor){
+  if(!rows || !rows.length) return;
+  var hdrs = ['Day'].concat(hasShift?['Shift']:[]).concat(['#','JCNO','Customer','Job Name','Qty','Total Cut Sheet','Dimension','Die No','Item Type','Status',(hasShift?'Shift Total':'Day Total'),'50% Cutoff']);
+  var NC = hdrs.length;
+  var BDR={top:{style:'thin',color:{rgb:'FFBBBBBB'}},bottom:{style:'thin',color:{rgb:'FFBBBBBB'}},left:{style:'thin',color:{rgb:'FFBBBBBB'}},right:{style:'thin',color:{rgb:'FFBBBBBB'}}};
+  var BDR_HDR={top:{style:'medium',color:{rgb:'FF000000'}},bottom:{style:'medium',color:{rgb:'FF000000'}},left:{style:'thin',color:{rgb:'FFFFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFFFF'}}};
+  function stTitle(){ return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:12},fill:{fgColor:{rgb:'FF1A1A2E'}},alignment:{horizontal:'left',vertical:'center'}}; }
+  function stHdr(){ return {font:{bold:true,color:{rgb:'FFFFFFFF'},sz:9},fill:{fgColor:{rgb:headerColor}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:BDR_HDR}; }
+  function stGroup(){ return {font:{bold:true,color:{rgb:'FF0F3460'},sz:9},fill:{fgColor:{rgb:'FFEEF2F7'}},alignment:{horizontal:'left',vertical:'center'},border:BDR}; }
+  function stData(bold,al,sz,wrap){ return {font:{bold:!!bold,color:{rgb:'FF1A1A2E'},sz:sz||9},fill:{fgColor:{rgb:'FFFFFFFF'}},alignment:{horizontal:al||'left',vertical:'center',wrapText:!!wrap},border:BDR}; }
+
+  var grid=[], sg=[];
+  function addR(c,s){ grid.push(c); sg.push(s); }
+  var today=new Date();
+  addR([sheetName.toUpperCase()+' — COMPULSORY JOB CHECK (50% Day-Machine Cutoff)  |  Date: '+fmtDDMMYYYY(today)+'  |  Total: '+rows.length].concat(new Array(NC-1).fill('')),
+    [stTitle()].concat(new Array(NC-1).fill({font:{sz:9},fill:{fgColor:{rgb:'FF1A1A2E'}}})));
+  addR(hdrs, hdrs.map(function(){return stHdr();}));
+
+  var lastDayKey=null, lastShiftKey=null, n=0;
+  rows.forEach(function(r){
+    var dayKey=r.machine+'|'+r.dateKey;
+    var shiftKey=dayKey+'|'+(r.shift||'');
+    if(lastShiftKey!==null && shiftKey!==lastShiftKey){
+      addR(new Array(NC).fill(''), new Array(NC).fill(null)); // blank gap row between day/shift groups
+    }
+    if(shiftKey!==lastShiftKey){ n=0; }
+    lastDayKey=dayKey; lastShiftKey=shiftKey;
+    n++;
+    var rowArr = [r.dateLabel].concat(hasShift?[r.shift]:[]).concat([n, r.jcno, r.customer, r.jobname, Math.round(r.qty), Math.round(r.cutsheet), r.dimension, r.dieno, r.itemtype, r.status, Math.round(r.shiftTotal), Math.round(r.shiftThreshold)]);
+    var styleArr = [stData()].concat(hasShift?[stData(false,'center')]:[]).concat([
+      stData(false,'center'), stData(true,'left'), stData(false,'left'), stData(false,'left',null,true),
+      stData(false,'right'), stData(true,'right'), stData(false,'center'), stData(false,'center'),
+      stData(false,'left',null,true), stData(false,'center'), stData(false,'right'), stData(false,'right')
+    ]);
+    addR(rowArr, styleArr);
+  });
+
+  var ws=XLSX.utils.aoa_to_sheet(grid);
+  for(var ri=0; ri<sg.length; ri++){
+    for(var ci=0; ci<sg[ri].length; ci++){
+      if(sg[ri][ci]){
+        var addr=XLSX.utils.encode_cell({r:ri,c:ci});
+        if(!ws[addr]) ws[addr]={t:'z',v:''};
+        ws[addr].s=sg[ri][ci];
+      }
+    }
+  }
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:NC-1}}];
+
+  // Autofit every column to its actual DATA width only (header text length is ignored on
+  // purpose, per request), except Job Name (kept generous/fixed) and Customer (fixed ~13mm).
+  var jobNameIdx = hdrs.indexOf('Job Name');
+  var custIdx = hdrs.indexOf('Customer');
+  var itemTypeIdx = hdrs.indexOf('Item Type');
+  var colMax = hdrs.map(function(){ return 0; });
+  grid.forEach(function(rowArr, ri){
+    if(ri < 2) return; // skip title row (merged) and header row
+    rowArr.forEach(function(val, ci){
+      if(ci===jobNameIdx || ci===itemTypeIdx) return;
+      var len = (val===null||val===undefined) ? 0 : String(val).length;
+      if(len > colMax[ci]) colMax[ci] = len;
+    });
+  });
+  var cols = hdrs.map(function(h, ci){
+    if(ci===jobNameIdx) return {wch:34};
+    if(ci===custIdx) return {wch:7};
+    if(ci===itemTypeIdx) return {wch:20};
+    return {wch: Math.min(Math.max(colMax[ci]+2, 6), 40)};
+  });
+  ws['!cols']=cols;
+  // Uniform 20pt row height for every row (title, header, gap, and data rows).
+  var ROW_HEIGHT_PT = 20;
+  ws['!rows'] = grid.map(function(){ return {hpt: ROW_HEIGHT_PT}; });
+  ws['!freeze']={xSplit:0,ySplit:2};
+  ws['!pageSetup']={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+  ws['!margins']={left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.15,footer:0.15};
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+}
+
+function downloadCJExcel(){
+  var total = D.cj.printing.length + D.cj.punching.length + D.cj.pasting.length;
+  if(!total){ alert('Koi compulsory jobs nahit! Pehle Printing/Punching/Pasting schedule upload kara.'); return; }
+  var wb = XLSX.utils.book_new();
+  cjBuildSheet(wb, 'Printing', D.cj.printing, false, 'FF16537E');
+  cjBuildSheet(wb, 'Punching', D.cj.punching, true, 'FF5C3FA0');
+  cjBuildSheet(wb, 'Pasting', D.cj.pasting, true, 'FFB5541A');
+  var today=new Date();
+  XLSX.writeFile(wb, 'AIA_Compulsory_Jobs_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx');
 }
 
 // Init

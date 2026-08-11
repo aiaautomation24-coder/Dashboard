@@ -309,7 +309,7 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
   <div class="tab" onclick="showTab('missreport',this)">📋 Missed Report</div>
   <div class="tab" onclick="showTab('overdue',this)">🔴 Overdue Jobs</div>
   <div class="tab" onclick="showTab('impact',this)">📊 Impact Analysis</div>
-  <div class="tab" onclick="showTab('compulsory',this)">🎯 Compulsory Jobs</div>
+  <div class="tab" onclick="showTab('compulsory',this)">🎯 QA Compulsory Check</div>
 </div>
 
 <div class="main">
@@ -779,17 +779,17 @@ tr.clickable-row{cursor:pointer} tr.clickable-row:hover td{background:#e8f0fb!im
 <!-- ===================== COMPULSORY JOBS (50% DAY-MACHINE CUTOFF) TAB ===================== -->
 <div id="tab-compulsory" class="panel">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:14px;font-size:11.5px;color:var(--text2)">
-    🎯 <b style="color:var(--text)">Compulsory Job Check</b> — Printing (4COL/6COL), Punching (B1/B2) ani Pasting (Ambition/Expert) chya <b>same upload buttons</b> (वरती header मध्ये) वापरून ही list auto-banते. Logic: pratyek din + machine sathi total (Printing/Punching = Tot. Cut Sheet, Pasting = Pending Qty) कादला जातो; tya total chya <b>50% peksha jasta</b> asnare individual jobs ithe highest-to-lowest क्रमाने दिसतात.
+    🎯 <b style="color:var(--text)">QA Compulsory Check</b> — Printing (4COL/6COL), Punching (B1/B2) ani Pasting (Ambition/Expert) chya <b>same upload buttons</b> (वरती header मध्ये) वापरून ही list auto-banते. Logic: pratyek din + machine sathi total (Printing/Punching = Tot. Cut Sheet, Pasting = Pending Qty) कादला जातो; tya total chya <b>50% peksha jasta</b> asnare individual jobs ithe highest-to-lowest क्रमाने दिसतात.
   </div>
 
   <div class="cards" style="margin-bottom:14px">
-    <div class="card c-blue"><div class="cl">Printing</div><div class="cv" id="cj-print-total">—</div><div class="cs">Compulsory jobs</div></div>
-    <div class="card c-purple"><div class="cl">Punching</div><div class="cv" id="cj-punch-total">—</div><div class="cs">Compulsory jobs</div></div>
-    <div class="card" style="background:var(--orange-bg)"><div class="cl">Pasting</div><div class="cv" id="cj-paste-total" style="color:var(--orange)">—</div><div class="cs">Compulsory jobs</div></div>
+    <div class="card c-blue"><div class="cl">Printing</div><div class="cv" id="cj-print-total">—</div><div class="cs">QA compulsory jobs</div></div>
+    <div class="card c-purple"><div class="cl">Punching</div><div class="cv" id="cj-punch-total">—</div><div class="cs">QA compulsory jobs</div></div>
+    <div class="card" style="background:var(--orange-bg)"><div class="cl">Pasting</div><div class="cv" id="cj-paste-total" style="color:var(--orange)">—</div><div class="cs">QA compulsory jobs</div></div>
   </div>
 
   <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px">
-    <button onclick="downloadCJExcel()" style="background:#0f3460;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Download Compulsory Jobs Excel</button>
+    <button onclick="downloadCJExcel()" style="background:#0f3460;color:#fff;border:none;border-radius:var(--radius);padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">⬇️ Download QA Compulsory Check Excel</button>
   </div>
 
   <div id="cj-printing-wrap"></div>
@@ -2536,6 +2536,17 @@ function downloadExcel(){
     wsAging['!margins']={left:0.35,right:0.35,top:0.45,bottom:0.45,header:0.15,footer:0.15};
     XLSX.utils.book_append_sheet(wb,wsAging,'Aging Report');
   })();
+
+  // ================================================================
+  // SHEET 4-6 — QA COMPULSORY CHECK (Printing / Punching / Pasting)
+  // Added as extra sheets in the same main report workbook (only if
+  // the QA Compulsory Check data has been uploaded via its own tab).
+  // ================================================================
+  if(typeof D.cj !== 'undefined' && D.cj){
+    cjBuildSheet(wb, 'QA Compulsory Printing', D.cj.printing, false, 'FF16537E');
+    cjBuildSheet(wb, 'QA Compulsory Punching', D.cj.punching, true, 'FF5C3FA0');
+    cjBuildSheet(wb, 'QA Compulsory Pasting', D.cj.pasting, true, 'FFB5541A');
+  }
 
   var fromStr=fmtDDMMYYYY(xlFrom).replace(/\//g,'-');
   var toStr=fmtDDMMYYYY(xlTo).replace(/\//g,'-');
@@ -5149,7 +5160,7 @@ function cjSectionHtml(procLabel, rows, hasShift){
   }
   var colspan = hasShift ? 13 : 12;
   var totalColLabel = hasShift ? 'Shift Total' : 'Day Total';
-  var html = '<div class="sec" style="margin-bottom:14px"><div class="sec-head"><h2>'+procLabel+'</h2><span>'+rows.length+' compulsory jobs</span></div><div class="table-wrap"><table>';
+  var html = '<div class="sec" style="margin-bottom:14px"><div class="sec-head"><h2>'+procLabel+'</h2><span>'+rows.length+' QA compulsory jobs</span></div><div class="table-wrap"><table>';
   html += '<thead><tr><th>Day</th>'+(hasShift?'<th>Shift</th>':'')+'<th>#</th><th>JCNO</th><th>Customer</th><th>Job Name</th><th class="num">Qty</th><th class="num">Total Cut Sheet</th><th>Dimension</th><th>Die No</th><th>Item Type</th><th>Status</th><th class="num">'+totalColLabel+'</th><th class="num">50% Cutoff</th></tr></thead><tbody>';
   var lastDayKey=null, lastShiftKey=null, n=0;
   rows.forEach(function(r){
@@ -5199,7 +5210,7 @@ function cjBuildSheet(wb, sheetName, rows, hasShift, headerColor){
   var grid=[], sg=[];
   function addR(c,s){ grid.push(c); sg.push(s); }
   var today=new Date();
-  addR([sheetName.toUpperCase()+' — COMPULSORY JOB CHECK (50% Day-Machine Cutoff)  |  Date: '+fmtDDMMYYYY(today)+'  |  Total: '+rows.length].concat(new Array(NC-1).fill('')),
+  addR([sheetName.toUpperCase()+' — QA COMPULSORY CHECK (50% Day-Machine Cutoff)  |  Date: '+fmtDDMMYYYY(today)+'  |  Total: '+rows.length].concat(new Array(NC-1).fill('')),
     [stTitle()].concat(new Array(NC-1).fill({font:{sz:9},fill:{fgColor:{rgb:'FF1A1A2E'}}})));
   addR(hdrs, hdrs.map(function(){return stHdr();}));
 
@@ -5266,13 +5277,13 @@ function cjBuildSheet(wb, sheetName, rows, hasShift, headerColor){
 
 function downloadCJExcel(){
   var total = D.cj.printing.length + D.cj.punching.length + D.cj.pasting.length;
-  if(!total){ alert('Koi compulsory jobs nahit! Pehle Printing/Punching/Pasting schedule upload kara.'); return; }
+  if(!total){ alert('Koi QA compulsory check jobs nahit! Pehle Printing/Punching/Pasting schedule upload kara.'); return; }
   var wb = XLSX.utils.book_new();
-  cjBuildSheet(wb, 'Printing', D.cj.printing, false, 'FF16537E');
-  cjBuildSheet(wb, 'Punching', D.cj.punching, true, 'FF5C3FA0');
-  cjBuildSheet(wb, 'Pasting', D.cj.pasting, true, 'FFB5541A');
+  cjBuildSheet(wb, 'QA Compulsory Printing', D.cj.printing, false, 'FF16537E');
+  cjBuildSheet(wb, 'QA Compulsory Punching', D.cj.punching, true, 'FF5C3FA0');
+  cjBuildSheet(wb, 'QA Compulsory Pasting', D.cj.pasting, true, 'FFB5541A');
   var today=new Date();
-  XLSX.writeFile(wb, 'AIA_Compulsory_Jobs_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx');
+  XLSX.writeFile(wb, 'AIA_QA_Compulsory_Check_'+fmtDDMMYYYY(today).replace(/\//g,'-')+'.xlsx');
 }
 
 // Init
